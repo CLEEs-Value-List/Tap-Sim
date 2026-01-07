@@ -10,184 +10,319 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <style>
+        /* --- GLOBAL & VARIABLES --- */
         :root { 
-            --bg-app: #0a0b10; --bg-card: #13141a; --bg-sidebar: #0f0f13;
-            --text-main: #ffffff; --text-muted: #cfcfcf; /* FIXED: Changed from dark grey to light grey */
-            --rarity-secret: #ff0055; --rarity-mythical: #d500f9; --rarity-legendary: #ffd600;
-            --market-color: #00d4ff; --danger: #ff3b3b; --success: #00ff88; --premium: #ffd700; --dead: #7e22ce;
-            --border-radius: 12px;
+            --bg-app: #050508; /* Darker background */
+            --bg-card: rgba(25, 25, 35, 0.6); /* Glassy Card */
+            --bg-sidebar: #08080b;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            
+            --text-main: #ffffff;
+            --text-muted: #a0a0b0;
+            
+            --rarity-secret: #ff0055;
+            --rarity-mythical: #d500f9;
+            --rarity-legendary: #ffd600;
+            
+            --market-color: #00d4ff;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --premium: #ffa502;
+            --dead: #7e22ce;
+            
+            --transition-fast: 0.2s ease;
+            --transition-smooth: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 15px rgba(0, 212, 255, 0.15);
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
-        
-        /* Desktop UI */
-        .desktop-view { display: none; height: 100vh; width: 100vw; flex-direction: row; background: var(--bg-app); color: var(--text-main); overflow: hidden; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        body { background-color: var(--bg-app); color: var(--text-main); overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+        /* --- DESKTOP UI --- */
+        .desktop-view { display: none; height: 100vh; width: 100vw; flex-direction: row; overflow: hidden; }
         @media (min-width: 901px) { .desktop-view { display: flex; } }
 
-        .d-sidebar { width: 280px; background: var(--bg-sidebar); border-right: 1px solid rgba(255,255,255,0.05); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
-        .d-sb-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .d-title { font-size: 1.2rem; font-weight: 800; color: var(--market-color); margin-bottom: 5px; display: block; }
-        .d-badge { font-size: 0.65rem; background: rgba(0, 255, 136, 0.15); color: var(--success); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--success); font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 8px; }
-        .d-discord { display: block; background: #5865F2; color: white; text-decoration: none; text-align: center; padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; }
+        /* Sidebar */
+        .d-sidebar {
+            width: 280px; background: var(--bg-sidebar);
+            padding: 20px; display: flex; flex-direction: column; gap: 15px;
+            border-right: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            z-index: 2;
+        }
+        .d-sb-header { margin-bottom: 10px; }
+        .d-title { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; display: block; margin-bottom: 5px; background: linear-gradient(45deg, var(--market-color), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .d-badge { font-size: 0.6rem; background: rgba(46, 213, 115, 0.1); color: var(--success); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(46, 213, 115, 0.3); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: inline-block; }
         
-        .d-status { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .d-status-row { font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; justify-content: space-between; margin-bottom: 3px; }
-        .d-premium { color: var(--premium); font-weight: 800; display: none; }
-        
-        .d-key-btn { display: block; background: #5865F2; color: white; text-align: center; padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; cursor: pointer; border: none; width: 100%; transition: 0.2s; }
-        .d-help { font-size: 0.7rem; color: var(--text-muted); line-height: 1.5; margin-top: 10px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-        
-        .d-egg-list { list-style: none; margin-top: 10px; }
-        .d-egg-item { padding: 10px; margin-bottom: 6px; background: rgba(255,255,255,0.03); border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; font-weight: 600; font-size: 0.9rem; color: var(--text-main); /* Ensure text visible */ }
-        .d-egg-item:hover { background: rgba(255,255,255,0.08); transform: translateX(3px); }
-        .d-egg-item.active { background: var(--market-color); color: #000; border-color: white; }
+        .d-discord { 
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: #5865F2; color: white; text-decoration: none; 
+            padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.85rem;
+            transition: var(--transition-fast); box-shadow: 0 4px 10px rgba(88, 101, 242, 0.3);
+        }
+        .d-discord:hover { transform: translateY(-2px); background: #4752c4; }
 
-        .d-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-        .d-top-bar { padding: 15px 25px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; background: var(--bg-app); flex-shrink: 0; }
-        .d-tabs { display: flex; background: var(--bg-card); padding: 6px; border-radius: 12px; gap: 6px; }
-        .d-tab { padding: 10px 20px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 8px; font-weight: 700; font-size: 0.95rem; min-width: 100px; }
-        .d-tab:hover { background: rgba(255,255,255,0.05); color: white; transform: scale(1.05); }
-        .d-tab.active { background: #2a2c35; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .d-status { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border); }
+        .d-status-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); }
+        .d-status-row span:last-child { color: var(--text-main); font-weight: 600; font-family: monospace; }
+        .d-premium { color: var(--premium); display: none; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; margin-left: 5px; }
+
+        .d-key-btn { 
+            background: transparent; border: 1px solid var(--market-color); color: var(--market-color);
+            padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer;
+            transition: var(--transition-fast); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;
+        }
+        .d-key-btn:hover { background: var(--market-color); color: #000; box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
+
+        .d-help { font-size: 0.7rem; line-height: 1.6; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px dashed var(--glass-border); }
+        .d-help b { color: var(--text-main); }
+
+        .d-egg-list { list-style: none; overflow-y: auto; flex: 1; margin-top: 10px; padding-right: 5px; }
+        .d-egg-item { 
+            padding: 10px 12px; margin-bottom: 6px; background: rgba(255,255,255,0.02); 
+            border-radius: 6px; cursor: pointer; transition: var(--transition-fast); 
+            border-left: 2px solid transparent; font-size: 0.85rem; color: var(--text-muted);
+        }
+        .d-egg-item:hover { background: rgba(255,255,255,0.06); color: var(--text-main); transform: translateX(4px); }
+        .d-egg-item.active { background: rgba(0, 212, 255, 0.1); color: var(--market-color); border-left-color: var(--market-color); }
+
+        /* Main Content */
+        .d-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.05), transparent 40%); }
         
-        .d-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .d-controls.hidden { display: none; }
-        .d-input { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 0.9rem; height: 40px; }
-        .d-btn { background: var(--market-color); color: #000; padding: 0 20px; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.9rem; height: 40px; white-space: nowrap; }
+        .d-top-bar { 
+            padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(5, 5, 8, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border);
+            z-index: 5;
+        }
+        .d-tabs { display: flex; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 10px; gap: 4px; }
+        .d-tab { 
+            padding: 8px 16px; border: none; background: transparent; color: var(--text-muted); 
+            cursor: pointer; border-radius: 6px; font-weight: 600; font-size: 0.85rem; 
+            transition: var(--transition-fast); 
+        }
+        .d-tab:hover { color: white; background: rgba(255,255,255,0.05); }
+        .d-tab.active { background: rgba(255,255,255,0.1); color: white; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2); }
+
+        .d-controls { display: flex; gap: 10px; align-items: center; }
+        .d-input { 
+            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; 
+            padding: 8px 12px; border-radius: 8px; outline: none; font-size: 0.85rem; height: 36px;
+            transition: var(--transition-fast); width: 140px;
+        }
+        .d-input:focus { border-color: var(--market-color); background: rgba(255,255,255,0.08); }
         
-        .d-filter-bar { padding: 10px 25px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); display: none; gap: 15px; flex-wrap: wrap; flex-shrink: 0; }
+        .d-btn { 
+            background: linear-gradient(135deg, var(--market-color), #0099cc); color: #000; 
+            padding: 0 18px; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; 
+            font-size: 0.85rem; height: 36px; white-space: nowrap; transition: var(--transition-fast); 
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+        }
+        .d-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0, 212, 255, 0.35); filter: brightness(1.1); }
+        .d-btn:active { transform: translateY(1px); }
+
+        .d-filter-bar { 
+            padding: 10px 25px; display: none; gap: 10px; flex-wrap: wrap; 
+            background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--glass-border); align-items: center;
+        }
         .d-filter-bar.visible { display: flex; }
-        .d-filter-btn { font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #aaa; cursor: pointer; font-weight: 700; text-transform: uppercase; }
-        .d-filter-btn.active { background: #333; color: white; border-color: white; }
-        .d-filter-btn[data-filter="Secret"].active { background: var(--rarity-secret); border-color: var(--rarity-secret); }
-        .d-filter-btn[data-filter="Mythical"].active { background: var(--rarity-mythical); border-color: var(--rarity-mythical); }
-        .d-filter-btn[data-filter="Legendary"].active { background: var(--rarity-legendary); border-color: var(--rarity-legendary); color: black; }
-        .d-filter-btn[data-variant="Golden"].active { background: #ffd700; color: black; border-color: #ffd700; }
-        .d-filter-btn[data-variant="Rainbow"].active { background: #00ffff; color: black; border-color: #00ffff; }
+        
+        .d-filter-btn { 
+            background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); 
+            color: var(--text-muted); padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; 
+            font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+            transition: var(--transition-fast);
+        }
+        .d-filter-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .d-filter-btn.active { background: rgba(255,255,255,0.15); color: white; border-color: rgba(255,255,255,0.3); transform: scale(1.05); }
 
-        .d-content { flex: 1; overflow-y: auto; padding: 20px 25px; background: var(--bg-app); position: relative; }
+        .d-content { flex: 1; overflow-y: auto; padding: 25px; position: relative; }
         .d-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
 
-        /* DESKTOP CARDS */
-        .d-card { background: var(--bg-card); border-radius: 12px; padding: 15px; border: 1px solid rgba(255,255,255,0.08); transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 10px; height: 200px; }
-        .d-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.3); background: #1a1b22; }
-        .d-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; border-radius: 12px 0 0 12px; background: #333; }
-        .d-card.rarity-Secret::before { background: var(--rarity-secret); }
-        .d-card.rarity-Mythical::before { background: var(--rarity-mythical); }
-        .d-card.rarity-Legendary::before { background: var(--rarity-legendary); }
+        /* --- CARDS --- */
+        .d-card, .m-card { 
+            background: var(--bg-card); border-radius: 12px; padding: 15px; border: 1px solid var(--glass-border);
+            transition: var(--transition-smooth); position: relative; overflow: hidden;
+            box-shadow: var(--shadow-card);
+        }
+        .d-card::before, .m-card::before {
+            content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent);
+            opacity: 0; transition: var(--transition-smooth); pointer-events: none;
+        }
         
-        .d-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.05rem; margin-bottom: 5px; color: #fff; }
-        .d-card-badge { font-size: 0.65rem; background: #222; padding: 2px 6px; border-radius: 4px; color: #aaa; text-transform: uppercase; }
-        
-        .d-price-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: auto; }
-        .d-price-box { background: #111; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
-        .d-price-label { font-size: 0.55rem; color: #888; text-transform: uppercase; font-weight: 700; }
-        .d-price-val { font-family: monospace; font-size: 0.9rem; color: #fff; font-weight: 800; }
-        
-        .d-demand { text-align: center; padding: 4px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; border: 1px solid transparent; margin-top: 5px; }
-        .d-demand.High { color: var(--success); background: rgba(0,255,136,0.1); border-color: var(--success); }
-        .d-demand.Medium { color: #ffaa00; background: rgba(255,170,0,0.1); border-color: #ffaa00; }
-        .d-demand.Low { color: var(--danger); background: rgba(255,59,59,0.1); border-color: var(--danger); }
+        .d-card:hover { 
+            transform: translateY(-5px) scale(1.01); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), var(--shadow-glow); 
+            border-color: rgba(255,255,255,0.15);
+        }
+        .d-card:hover::before { opacity: 1; }
 
-        /* Market Cards (Modified to fit visual style) */
-        .d-mkt-card { height: auto; min-height: 230px; }
-        .d-mkt-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 5px; }
-        .d-mkt-stat { background: #111; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid #222; display: flex; flex-direction: column; justify-content: center; }
-        .d-mkt-stat span { font-size: 0.6rem; color: #888; text-transform: uppercase; font-weight: 700; }
-        .d-mkt-stat strong { font-size: 0.85rem; color: #eee; font-family: monospace; }
-        .d-mkt-stat.price strong { color: var(--market-color); font-size: 1rem; }
-        
-        .d-mkt-footer { display: grid; grid-template-columns: 1fr auto; gap: 5px; align-items: center; margin-top: auto; }
-        .d-seller { font-size: 0.75rem; font-family: monospace; color: var(--market-color); background: #0f0f13; padding: 5px; border-radius: 4px; border: 1px solid #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .d-acts { display: flex; gap: 5px; }
-        .d-act-btn { padding: 5px 8px; font-size: 0.7rem; border-radius: 4px; border: none; cursor: pointer; font-weight: 700; background: rgba(255,255,255,0.05); color: white; }
-        .d-act-btn:hover { background: rgba(255,255,255,0.15); }
-        .d-act-del { background: rgba(255,59,59,0.1); color: var(--danger); border: 1px solid rgba(255,59,59,0.2); }
-        .d-act-del:hover { background: var(--danger); color: white; }
-        .d-neg { text-align: center; font-size: 0.7rem; color: orange; font-style: italic; grid-column: 1 / -1; margin-top: 2px; }
-        
-        .d-timer { font-size: 0.65rem; color: #888; text-align: center; margin-top: 2px; grid-column: 1 / -1; }
+        /* Rarity Indicator (Left Border) */
+        .d-card::after, .m-card::after {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #333; border-radius: 12px 0 0 12px;
+            transition: var(--transition-fast);
+        }
+        .d-card.rarity-Secret::after, .m-card[data-rarity="Secret"]::after { background: var(--rarity-secret); box-shadow: 0 0 8px var(--rarity-secret); }
+        .d-card.rarity-Mythical::after, .m-card[data-rarity="Mythical"]::after { background: var(--rarity-mythical); box-shadow: 0 0 8px var(--rarity-mythical); }
+        .d-card.rarity-Legendary::after, .m-card[data-rarity="Legendary"]::after { background: var(--rarity-legendary); box-shadow: 0 0 8px var(--rarity-legendary); }
 
-        /* MOBILE UI */
-        .mobile-view { display: none; flex-direction: column; height: 100vh; width: 100vw; background: var(--bg-app); color: var(--text-main); }
+        /* Card Content */
+        .d-card-header, .m-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .d-card-header span:first-child, .m-card-header span:first-child { font-weight: 700; font-size: 1rem; color: #fff; }
+        .d-card-badge, .m-card-badge { font-size: 0.6rem; background: rgba(255,255,255,0.1); padding: 3px 6px; border-radius: 4px; color: #ccc; text-transform: uppercase; font-weight: 700; }
+
+        /* 3 Column Prices (Desktop) */
+        .d-price-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
+        .d-price-box { 
+            background: rgba(0,0,0,0.3); padding: 8px 4px; border-radius: 6px; text-align: center; 
+            border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 2px;
+            transition: var(--transition-fast);
+        }
+        .d-price-box:hover { background: rgba(255,255,255,0.05); transform: translateY(-2px); }
+        .d-price-label { font-size: 0.45rem; color: #888; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
+        .d-price-val { font-family: 'Courier New', monospace; font-size: 0.95rem; color: #fff; font-weight: 700; }
+
+        .d-demand { text-align: center; padding: 4px; border-radius: 4px; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; margin-top: 6px; letter-spacing: 1px; opacity: 0.9; }
+        .d-demand.High { background: rgba(46, 213, 115, 0.15); color: var(--success); border: 1px solid rgba(46, 213, 115, 0.3); }
+        .d-demand.Medium { background: rgba(255, 165, 2, 0.15); color: var(--premium); border: 1px solid rgba(255, 165, 2, 0.3); }
+        .d-demand.Low { background: rgba(255, 71, 87, 0.15); color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.3); }
+
+        /* Market Cards (Desktop) */
+        .d-mkt-card { min-height: 220px; }
+        .d-mkt-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 8px 0; }
+        .d-mkt-stat { background: rgba(0,0,0,0.3); padding: 6px; border-radius: 6px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .d-mkt-stat span { font-size: 0.5rem; color: #888; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px; }
+        .d-mkt-stat strong { font-size: 0.9rem; font-family: monospace; color: #fff; }
+        .d-mkt-stat.price strong { color: var(--market-color); text-shadow: 0 0 5px rgba(0,212,255,0.4); }
+        
+        .d-mkt-footer { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .d-seller { font-size: 0.75rem; font-family: monospace; color: var(--market-color); background: rgba(0,212,255,0.05); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(0,212,255,0.1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        .d-acts { display: flex; gap: 4px; }
+        .d-act-btn { 
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #ddd; 
+            padding: 5px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; cursor: pointer; 
+            transition: var(--transition-fast); text-transform: uppercase;
+        }
+        .d-act-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+        .d-act-del { color: var(--danger); border-color: rgba(255, 71, 87, 0.3); background: rgba(255, 71, 87, 0.05); }
+        .d-act-del:hover { background: var(--danger); color: white; transform: scale(1.05); }
+        
+        .d-timer { font-size: 0.6rem; color: #666; text-align: right; margin-top: 2px; grid-column: 1 / -1; font-family: monospace; }
+        .d-neg { grid-column: 1 / -1; text-align: center; font-size: 0.65rem; color: var(--premium); font-weight: 700; background: rgba(255, 165, 2, 0.1); border-radius: 4px; padding: 2px; }
+
+        /* --- MOBILE UI --- */
+        .mobile-view { display: none; flex-direction: column; height: 100vh; width: 100vw; background: var(--bg-app); overflow: hidden; }
         @media (max-width: 900px) { .mobile-view { display: flex; } }
+
+        .m-header { padding: 12px 16px; background: rgba(8, 8, 11, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .m-title { font-size: 1rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); }
+        .m-menu-btn { background: transparent; border: 1px solid var(--glass-border); color: white; font-size: 1.2rem; width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; transition: var(--transition-fast); }
+        .m-menu-btn:hover { background: rgba(255,255,255,0.1); }
+
+        .m-tabs { display: flex; background: transparent; padding: 8px; gap: 5px; overflow-x: auto; }
+        .m-tab { flex: 1; min-width: 80px; padding: 8px; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid transparent; transition: var(--transition-fast); }
+        .m-tab.active { color: white; background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); transform: scale(1.02); }
+
+        .m-filter-bar { padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border); display: none; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .m-filter-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+        .m-filter-btn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.03); color: #aaa; font-size: 0.65rem; font-weight: 700; cursor: pointer; transition: var(--transition-fast); }
+        .m-filter-btn.active { background: rgba(255,255,255,0.15); color: white; border-color: var(--market-color); }
+        .m-search-input { width: 100%; padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; margin-top: 5px; }
+
+        .m-content { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 80px; }
+        .m-card { margin-bottom: 10px; padding: 12px; }
+        .m-card-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 8px; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 6px; }
+        .m-val { text-align: center; }
+        .m-val span { display: block; font-size: 0.5rem; color: #888; text-transform: uppercase; font-weight: 700; }
+        .m-val strong { font-family: monospace; font-size: 0.9rem; color: #fff; }
+        .m-dmnd { margin-top: 6px; padding: 3px; border-radius: 4px; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; border: 1px solid transparent; text-align: center; }
         
-        .m-header { padding: 10px 15px; background: var(--bg-sidebar); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 10; }
-        .m-title { font-size: 1rem; font-weight: 800; color: var(--market-color); }
-        .m-menu-btn { background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
-
-        .m-tabs { display: flex; background: var(--bg-app); padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
-        .m-tab { flex: 1; padding: 10px 5px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; }
-        .m-tab.active { color: white; border-bottom-color: var(--market-color); }
-
-        .m-filter-bar { padding: 10px; background: #111; border-bottom: 1px solid rgba(255,255,255,0.05); display: none; flex-shrink: 0; }
-        .m-filter-row { display: flex; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
-        .m-filter-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #aaa; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-        .m-filter-btn.active { background: #333; color: white; border-color: white; }
-        .m-search-input { width: 100%; padding: 10px; border-radius: 6px; background: #0f0f13; border: 1px solid #333; color: white; }
-
-        .m-content { flex: 1; overflow-y: auto; padding: 10px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
-        .m-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-
-        .m-card { background: var(--bg-card); border-radius: 10px; padding: 12px; border: 1px solid rgba(255,255,255,0.08); position: relative; }
-        .m-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 10px 0 0 10px; background: #333; }
-        .m-card[data-rarity="Secret"]::before { background: var(--rarity-secret); }
-        .m-card[data-rarity="Mythical"]::before { background: var(--rarity-mythical); }
-        .m-card[data-rarity="Legendary"]::before { background: var(--rarity-legendary); }
+        .m-actions { display: flex; gap: 6px; margin-top: 10px; }
+        .m-btn { flex: 1; padding: 8px; border: 1px solid var(--glass-border); border-radius: 6px; font-weight: 700; font-size: 0.7rem; cursor: pointer; background: rgba(255,255,255,0.05); color: #ddd; transition: var(--transition-fast); }
+        .m-btn-copy { color: var(--market-color); border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.05); }
+        .m-btn-del { color: var(--danger); border-color: rgba(255,71,87,0.3); background: rgba(255,71,87,0.05); }
+        .m-btn:hover { transform: scale(1.03); background: rgba(255,255,255,0.1); }
         
-        .m-card-header { display: flex; justify-content: space-between; font-weight: 800; font-size: 1rem; margin-bottom: 5px; color: #fff; }
-        .m-card-badge { font-size: 0.6rem; background: #222; padding: 2px 6px; border-radius: 4px; color: #ccc; text-transform: uppercase; }
-        .m-card-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 6px; }
-        .m-val { text-align: center; font-size: 0.75rem; }
-        .m-val span { display: block; font-size: 0.55rem; color: #888; text-transform: uppercase; }
-        .m-val strong { font-family: monospace; font-size: 0.95rem; color: #fff; }
-        .m-dmnd { font-size: 0.65rem; padding: 3px; border-radius: 4px; text-align: center; margin-top: 5px; font-weight: 800; text-transform: uppercase; }
-        .dmnd-High { background: rgba(0,255,136,0.1); color: var(--success); border: 1px solid var(--success); }
-        .dmnd-Medium { background: rgba(255,170,0,0.1); color: #ffaa00; border: 1px solid #ffaa00; }
-        .dmnd-Low { background: rgba(255,59,59,0.1); color: var(--danger); border: 1px solid var(--danger); }
-        .dmnd-Dead { background: rgba(126,34,255,0.1); color: var(--dead); border: 1px solid var(--dead); }
+        .m-seller { font-size: 0.65rem; font-family: monospace; color: var(--market-color); margin-top: 4px; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .m-timer { font-size: 0.6rem; color: #666; text-align: center; margin-top: 4px; }
 
-        .m-actions { display: flex; gap: 5px; margin-top: 8px; }
-        .m-btn { flex: 1; padding: 6px; border: none; border-radius: 5px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
-        .m-btn-copy { background: rgba(0,212,255,0.15); color: var(--market-color); border: 1px solid rgba(0,212,255,0.3); }
-        .m-btn-del { background: rgba(255,59,59,0.15); color: var(--danger); border: 1px solid rgba(255,59,59,0.3); }
-        .m-seller { font-size: 0.7rem; font-family: monospace; color: var(--market-color); opacity: 0.8; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-        .m-timer { font-size: 0.65rem; color: #888; text-align: center; margin-top: 3px; }
+        /* Mobile FABs */
+        .m-actions-bar { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 50; }
+        .m-fab { 
+            width: 52px; height: 52px; border-radius: 14px; border: none; font-size: 1.3rem; font-weight: 800; 
+            cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; 
+            transition: var(--transition-fast); backdrop-filter: blur(5px);
+        }
+        .m-fab.search { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .m-fab.list { background: linear-gradient(135deg, var(--market-color), #0099cc); color: #000; }
+        .m-fab:active { transform: scale(0.9); }
+        
+        /* --- MODALS & DRAWER --- */
+        /* Glass Overlay */
+        .modal-overlay, .m-overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); 
+            display: none; justify-content: center; align-items: center; z-index: 100; opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.open, .m-overlay.open { display: flex; opacity: 1; }
 
-        .m-actions-bar { position: fixed; bottom: 10px; right: 10px; display: flex; gap: 8px; z-index: 50; }
-        .m-fab { width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 1.2rem; font-weight: 800; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
-        .m-fab.search { background: var(--bg-card); color: white; border: 1px solid #444; }
-        .m-fab.list { background: var(--market-color); color: #000; }
+        /* Modern Modal */
+        .modal { 
+            width: 90%; max-width: 420px; background: #121216; border: 1px solid var(--glass-border); 
+            border-radius: 16px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+            transform: scale(0.95); transition: var(--transition-smooth); display: flex; flex-direction: column; gap: 15px;
+        }
+        .modal-overlay.open .modal { transform: scale(1); }
 
-        .m-drawer { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-sidebar); z-index: 100; transition: left 0.3s ease; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
-        .m-drawer.open { left: 0; }
-        .m-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .m-overlay.open { opacity: 1; pointer-events: auto; }
-        .m-drawer-close { background: transparent; border: none; color: white; font-size: 1.5rem; align-self: flex-end; margin-bottom: 10px; }
-        .m-drawer-header { font-weight: 800; font-size: 1.2rem; color: var(--market-color); margin-bottom: 20px; }
-        .m-drawer-section { margin-bottom: 20px; }
-        .m-drawer-title { font-size: 0.8rem; color: #aaa; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; }
-        .m-drawer-info { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.8rem; color: var(--text-main); }
-        .m-drawer-row { display: flex; justify-content: space-between; margin-bottom: 4px; color: #fff; }
-        .m-drawer-btn { display: block; width: 100%; padding: 10px; background: #1a1d23; border: 1px solid #333; color: white; margin-bottom: 5px; border-radius: 6px; text-align: left; font-weight: 600; cursor: pointer; }
+        .modal h2 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: white; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; }
+        .trust-box { background: rgba(46, 213, 115, 0.1); border: 1px solid rgba(46, 213, 115, 0.3); padding: 10px; border-radius: 8px; font-size: 0.8rem; color: var(--success); font-weight: 600; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: var(--text-muted); }
+        .form-group input, .form-group select { 
+            background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: white; 
+            padding: 10px; border-radius: 8px; outline: none; font-size: 0.9rem; transition: var(--transition-fast); 
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--market-color); background: rgba(255,255,255,0.06); }
+        
+        .checkbox-group { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+        .checkbox-group input { accent-color: var(--market-color); width: 16px; height: 16px; }
+        
+        .error-msg { min-height: 18px; font-size: 0.75rem; color: var(--danger); font-weight: 600; text-align: right; }
+        
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 5px; }
+        .btn { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: var(--transition-fast); }
+        .btn-primary { background: linear-gradient(135deg, var(--market-color), #0088bb); color: #000; box-shadow: 0 4px 12px rgba(0,212,255,0.3); }
+        .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: #ddd; border: 1px solid var(--glass-border); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+        /* Drawer */
+        .m-drawer { 
+            position: fixed; top: 0; left: -320px; width: 280px; height: 100vh; background: #0e0e12; 
+            z-index: 150; transition: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); border-right: 1px solid var(--glass-border); 
+            padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;
+        }
+        .m-drawer.open { left: 0; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+        .m-drawer-close { align-self: flex-end; background: rgba(255,255,255,0.05); border: none; color: white; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; }
+        .m-drawer-header { font-size: 1.2rem; font-weight: 800; color: var(--market-color); }
+        .m-drawer-section { border-top: 1px solid var(--glass-border); padding-top: 15px; }
+        .m-drawer-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 10px; font-weight: 700; }
+        .m-drawer-info { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; font-size: 0.8rem; color: #ccc; }
+        .m-drawer-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .m-drawer-btn { display: block; width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; margin-bottom: 6px; border-radius: 8px; text-align: left; font-weight: 600; cursor: pointer; transition: var(--transition-fast); }
+        .m-drawer-btn:hover { background: rgba(255,255,255,0.1); transform: translateX(4px); }
         .m-drawer-btn.active { background: var(--market-color); color: #000; border-color: var(--market-color); }
-        .m-drawer-btn.discord { background: #5865F2; border-color: #5865F2; text-align: center; }
-        .m-drawer-btn.key { background: #2a2e35; color: var(--market-color); border: 1px solid var(--market-color); text-align: center; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 200; }
-        .modal-overlay.open { display: flex; }
-        .modal { background: #16181d; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto; }
-        .modal h2 { margin-bottom: 15px; color: var(--market-color); font-size: 1.2rem; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; background: #0f1014; border: 1px solid #333; border-radius: 6px; color: white; outline: none; }
-        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; }
-        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; }
-        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; }
-        .btn-primary { background: var(--market-color); color: #000; }
-        .btn-secondary { background: #2a2e35; color: white; border: 1px solid #444; }
-        .error-msg { color: var(--danger); font-size: 0.85rem; height: 1.2em; margin-top: 5px; }
-        .trust-box { background: rgba(0, 255, 136, 0.1); border: 1px solid var(--success); padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; }
-        .verify-msg { font-size: 0.75rem; margin-top: 3px; }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); opacity: 0.5; }
+        .m-drawer-btn.discord { background: #5865F2; border-color: #5865F2; text-align: center; font-weight: 700; }
+        .m-drawer-btn.key { background: rgba(255,255,255,0.05); color: var(--market-color); border: 1px solid var(--market-color); text-align: center; }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #444; font-weight: 600; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -196,22 +331,32 @@
     <div class="desktop-view" id="desktopUI">
         <aside class="d-sidebar">
             <div class="d-sb-header">
-                <span class="d-title">CLEEs Value List</span>
-                <span class="d-badge">✅ FREE TRUST</span>
-                <a href="https://discord.gg/Xq6qNSFw" target="_blank" class="d-discord">Join Discord</a>
+                <span class="d-title">CLEEs List</span>
+                <span class="d-badge">Verified System</span>
+                <a href="https://discord.gg/Xq6qNSFw" target="_blank" class="d-discord">
+                    <span>Join Discord</span>
+                </a>
             </div>
+            
             <div class="d-status" id="dStatusBox">
-                <div class="d-status-row"><span>Status</span> <span id="dSlots">1</span> <span class="d-premium">PREMIUM</span></div>
-                <div class="d-status-row"><span>Expiry</span> <span id="dExpiry">24h</span></div>
+                <div class="d-status-row">
+                    <span>Access</span> 
+                    <span><span id="dType">Free</span> <span class="d-premium">PREMIUM</span></span>
+                </div>
+                <div class="d-status-row"><span>Slots</span> <span id="dSlots">1</span></div>
+                <div class="d-status-row"><span>Limit</span> <span id="dLimit">3h</span></div>
             </div>
-            <button class="d-key-btn" onclick="openKeyModal()">Verify / Access Key</button>
+
+            <button class="d-key-btn" onclick="openKeyModal()">Verify / Add Key</button>
+            
             <div class="d-help">
-                • <b>FREE:</b> 1 Listing / 3h Duration.<br>
-                • <b>NORMAL KEY:</b> 10 Listings / 12h + Locked Name.<br>
-                • <b>ADMIN KEY:</b> 99 Listings / 48h.<br>
-                • Keys prevent fake offers.
+                • <b>Standard:</b> 1 Slot / 3h.<br>
+                • <b>Normal Key:</b> 10 Slots / 12h + Lock Name.<br>
+                • <b>Admin:</b> 99 Slots / 48h.<br>
+                • Automatic cleanup enabled.
             </div>
-            <div style="margin-top:15px; font-size:0.75rem; color:#aaa; font-weight:700; text-transform:uppercase; margin-bottom:5px;">Categories</div>
+
+            <div style="margin-top:15px; font-size:0.7rem; color:#666; font-weight:800; text-transform:uppercase;">Categories</div>
             <ul class="d-egg-list" id="dEggList"></ul>
         </aside>
         
@@ -229,21 +374,22 @@
                         <option value="price-asc">Low-High</option>
                         <option value="price-desc">High-Low</option>
                     </select>
-                    <button class="d-btn" onclick="openModal()">+ List Pet</button>
+                    <button class="d-btn" onclick="openModal()">+ Add Listing</button>
                 </div>
             </header>
             
             <div class="d-filter-bar" id="dFilterBar">
-                <div class="d-controls">
-                    <span style="color:#aaa; font-size:0.8rem; font-weight:700;">RARITY:</span>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <span style="color:#888; font-size:0.7rem; font-weight:700; text-transform:uppercase;">Rarity:</span>
                     <button class="d-filter-btn active" data-filter="all" onclick="setRarity('all', 'desktop')">All</button>
                     <button class="d-filter-btn" data-filter="Secret" onclick="setRarity('Secret', 'desktop')">Secret</button>
-                    <button class="d-filter-btn" data-filter="Mythical" onclick="setRarity('Mythical', 'desktop')">Mythical</button>
-                    <button class="d-filter-btn" data-filter="Legendary" onclick="setRarity('Legendary', 'desktop')">Legendary</button>
-                    <span style="color:#aaa; font-size:0.8rem; font-weight:700; margin-left:10px;">VAR:</span>
+                    <button class="d-filter-btn" data-filter="Mythical" onclick="setRarity('Mythical', 'desktop')">Myth</button>
+                    <button class="d-filter-btn" data-filter="Legendary" onclick="setRarity('Legendary', 'desktop')">Leg</button>
+                    <div style="width:1px; height:16px; background:rgba(255,255,255,0.1); margin:0 5px;"></div>
+                    <span style="color:#888; font-size:0.7rem; font-weight:700; text-transform:uppercase;">Var:</span>
                     <button class="d-filter-btn active" data-variant="All" onclick="setVariant('All', 'desktop')">All</button>
-                    <button class="d-filter-btn" data-variant="Golden" onclick="setVariant('Golden', 'desktop')">Golden</button>
-                    <button class="d-filter-btn" data-variant="Rainbow" onclick="setVariant('Rainbow', 'desktop')">Rainbow</button>
+                    <button class="d-filter-btn" data-variant="Golden" onclick="setVariant('Golden', 'desktop')">Gold</button>
+                    <button class="d-filter-btn" data-variant="Rainbow" onclick="setVariant('Rainbow', 'desktop')">Rain</button>
                 </div>
             </div>
 
@@ -254,7 +400,7 @@
     <!-- MOBILE UI -->
     <div class="mobile-view" id="mobileUI">
         <div class="m-header">
-            <span class="m-title">CLEEs List</span>
+            <span class="m-title">CLEEs Value</span>
             <button class="m-menu-btn" onclick="toggleDrawer(true)">☰</button>
         </div>
 
@@ -266,14 +412,13 @@
 
         <div class="m-filter-bar" id="mFilterBar">
             <input type="text" class="m-search-input" id="mSearch" placeholder="Search..." onkeyup="handleSearch('mobile')">
-            <div style="height:5px"></div>
             <div class="m-filter-row">
-                <span style="color:#aaa; font-size:0.7rem; align-self:center;">Rarity:</span>
                 <button class="m-filter-btn active" data-filter="all" onclick="setRarity('all', 'mobile')">All</button>
                 <button class="m-filter-btn" data-filter="Secret" onclick="setRarity('Secret', 'mobile')">Sec</button>
                 <button class="m-filter-btn" data-filter="Mythical" onclick="setRarity('Mythical', 'mobile')">Myth</button>
                 <button class="m-filter-btn" data-filter="Legendary" onclick="setRarity('Legendary', 'mobile')">Leg</button>
-                <span style="color:#aaa; font-size:0.7rem; align-self:center; margin-left:5px;">Sort:</span>
+            </div>
+            <div class="m-filter-row">
                 <button class="m-filter-btn" onclick="setSortMobile('newest')">New</button>
                 <button class="m-filter-btn" onclick="setSortMobile('price-asc')">Low</button>
                 <button class="m-filter-btn" onclick="setSortMobile('price-desc')">High</button>
@@ -289,21 +434,24 @@
 
         <div class="m-overlay" id="mOverlay" onclick="toggleDrawer(false)"></div>
         <div class="m-drawer" id="mDrawer">
-            <button class="m-drawer-close" onclick="toggleDrawer(false)">×</button>
+            <button class="m-drawer-close" onclick="toggleDrawer(false)">✕</button>
             <div class="m-drawer-header">Menu</div>
+            
             <div class="m-drawer-section">
                 <div class="m-drawer-title">User Status</div>
                 <div class="m-drawer-info">
-                    <div class="m-drawer-row"><span>Slots:</span> <span id="mSlots">1</span></div>
                     <div class="m-drawer-row"><span>Type:</span> <span id="mType">Free</span></div>
+                    <div class="m-drawer-row"><span>Slots:</span> <span id="mSlots">1</span></div>
                     <div class="m-drawer-row"><span>Duration:</span> <span id="mDuration">3h</span></div>
                 </div>
-                <button class="m-drawer-btn key" onclick="openKeyModal()">Verify / Key</button>
+                <button class="m-drawer-btn key" onclick="openKeyModal()">Verify / Add Key</button>
             </div>
+
             <div class="m-drawer-section">
                 <div class="m-drawer-title">Categories</div>
                 <div id="mEggList" style="display: flex; flex-direction: column; gap: 5px;"></div>
             </div>
+
             <div class="m-drawer-section">
                 <button class="m-drawer-btn discord" onclick="window.open('https://discord.gg/Xq6qNSFw', '_blank')">Join Discord</button>
             </div>
@@ -313,27 +461,46 @@
     <!-- MODALS -->
     <div class="modal-overlay" id="sellModal">
         <div class="modal">
-            <h2>Post Listing</h2>
-            <div class="trust-box" id="modalTrustText">This is FREE. Verification prevents spam.</div>
+            <h2>Create Listing</h2>
+            <div class="trust-box" id="modalTrustText">Standard Access: Random names allowed.</div>
             <form id="sellForm" onsubmit="submitListing(event)">
-                <div class="form-group"><label>Pet Name</label><input type="text" id="pName" list="petList" required></div>
-                <div class="form-group" style="display:flex; gap:10px;">
-                    <div style="flex:1;"><label>Rarity</label><select id="pRarity"><option>Secret</option><option>Mythical</option><option>Legendary</option></select></div>
-                    <div style="flex:1;"><label>Variant</label><select id="pVariant"><option>Normal</option><option>Golden</option><option>Rainbow</option></select></div>
+                <div class="form-group">
+                    <label>Pet Name</label>
+                    <input type="text" id="pName" list="petList" placeholder="e.g. 2026 Overload" required>
                 </div>
-                <div class="form-group" style="display:flex; gap:10px;">
-                    <div style="flex:1;"><label>Amount</label><input type="number" id="pAmount" value="1" required></div>
-                    <div style="flex:1;"><label>Price</label><input type="number" id="pPrice" required></div>
+                <div class="form-group" style="flex-direction: row; gap: 10px;">
+                    <div style="flex:1;">
+                        <label>Rarity</label>
+                        <select id="pRarity"><option>Secret</option><option>Mythical</option><option>Legendary</option></select>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Variant</label>
+                        <select id="pVariant"><option>Normal</option><option>Golden</option><option>Rainbow</option></select>
+                    </div>
                 </div>
-                <div class="form-group"><label>Discord Name</label><input type="text" id="pDiscord" placeholder="User#1234" required></div>
-                <!-- Status message for Discord name -->
-                <div id="discordStatus" style="font-size:0.75rem; margin-bottom:10px; color:#888;"></div>
-
-                <div class="checkbox-group"><input type="checkbox" id="pNegotiable"><label>Allow Negotiation</label></div>
+                <div class="form-group" style="flex-direction: row; gap: 10px;">
+                    <div style="flex:1;">
+                        <label>Amount</label>
+                        <input type="number" id="pAmount" value="1" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Price</label>
+                        <input type="number" id="pPrice" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Discord Name</label>
+                    <input type="text" id="pDiscord" placeholder="User#1234" required>
+                    <div id="discordStatus" style="font-size:0.7rem; height:14px; color:var(--market-color); font-weight:600;"></div>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="pNegotiable">
+                    <label style="font-size:0.85rem; color:#ddd;">Allow Negotiation</label>
+                </div>
                 <div class="error-msg" id="errorMsg"></div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">Confirm</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">List Pet</button>
                 </div>
             </form>
         </div>
@@ -341,13 +508,21 @@
 
     <div class="modal-overlay" id="keyModal">
         <div class="modal">
-            <h2>Verify Access</h2>
-            <div class="form-group"><label>User ID</label><input type="text" id="userIdInput" placeholder="User#1234"></div>
-            <div class="form-group"><label>Key</label><input type="text" id="userKeyInput" placeholder="Paste Key"></div>
-            <div style="font-size:0.75rem; color:#aaa; margin-bottom:10px;">Admin Key: <b>CLEE</b></div>
-            <button class="btn btn-primary" style="width:100%" onclick="activateKey()">Activate</button>
-            <div class="error-msg" id="keyError"></div>
-            <div class="modal-actions" style="margin-top:10px;"><button class="btn btn-secondary" onclick="closeModal()">Close</button></div>
+            <h2>Access Verification</h2>
+            <div class="form-group">
+                <label>User ID</label>
+                <input type="text" id="userIdInput" placeholder="YourDiscord#1234">
+            </div>
+            <div class="form-group">
+                <label>Access Key</label>
+                <input type="text" id="userKeyInput" placeholder="Paste key here">
+            </div>
+            <div style="font-size:0.7rem; color:#666; margin-top:5px;">Admin Key: <b>CLEE</b></div>
+            <div class="modal-actions" style="margin-top:15px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <button type="button" class="btn btn-primary" onclick="activateKey()">Activate</button>
+            </div>
+            <div class="error-msg" id="keyError" style="text-align: center; margin-top: 5px;"></div>
         </div>
     </div>
 
@@ -356,13 +531,9 @@
     <script>
         // --- CONFIGURATION ---
         const adminKey = "CLEE"; 
-        
-        // KEYS DB: Define keys and who owns them (Normal Keys)
-        // Structure: { key: "KEYCODE", owner: "User#1234" }
         const userKeys = [
-            // Add your Normal Keys here like this:
-            // { key: "PETXPASS", owner: "your_discord_name#1234" }
-            // Leave empty if you don't have any to test yet.
+            // ADD YOUR KEYS HERE:
+            // { key: "YOUR_KEY_HERE", owner: "DiscordUser#1234" }
         ];
 
         // --- FIREBASE CONFIG ---
@@ -380,7 +551,7 @@
             try {
                 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Firebase Error:", e); }
         }
 
         // --- PET DATA ---
@@ -420,7 +591,7 @@
             "TOP 10": "High", "TOP 100": "High", "TOP 250": "Medium"
         };
 
-        // --- STATE & USER SESSION ---
+        // --- STATE MANAGEMENT ---
         let appState = {
             tab: 'values',
             egg: 'New Year Egg',
@@ -430,61 +601,72 @@
             sort: 'newest',
             platform: 'desktop',
             data: [],
-            userInfo: { type: 'free', key: null, owner: null } // type: 'free', 'normal', 'admin'
+            user: { type: 'free', key: null, owner: null, expiry: 0 } // type: free, normal, admin
         };
 
         // --- INITIALIZATION ---
         function init() {
-            loadUserSession();
+            loadSession();
             populateDatalist();
             renderEggs();
-            switchTab('values', window.innerWidth > 900 ? 'desktop' : 'mobile');
+            handleResize();
             if (db) {
-                scheduleCleanup(); // Auto delete expired
-                fetchMarketData(); // Load data on startup
+                startAutoCleanup();
+                fetchMarketData();
             }
             window.addEventListener('resize', handleResize);
         }
 
-        function loadUserSession() {
-            const raw = localStorage.getItem('clees_user_session');
+        function loadSession() {
+            const raw = localStorage.getItem('clees_session_v2');
             if (raw) {
-                const session = JSON.parse(raw);
-                // Check if expired
-                if (session.expiry && Date.now() > session.expiry) {
-                    localStorage.removeItem('clees_user_session');
-                    appState.userInfo = { type: 'free', key: null, owner: null };
+                const s = JSON.parse(raw);
+                if (Date.now() < s.expiry) {
+                    appState.user = s;
                 } else {
-                    appState.userInfo = session;
+                    localStorage.removeItem('clees_session_v2');
+                    appState.user = { type: 'free', key: null, owner: null, expiry: 0 };
                 }
-            } else {
-                appState.userInfo = { type: 'free', key: null, owner: null };
             }
-            updateUserUI();
+            updateUIUserStatus();
         }
 
-        function updateUserUI() {
-            const info = appState.userInfo;
-            let slots = 1;
-            let duration = "3h";
-            let label = "Free User";
+        function saveSession(type, key, owner) {
+            const durationDays = type === 'admin' ? 365 : 30; // Session validity (not listing validity)
+            const session = {
+                type: type,
+                key: key,
+                owner: owner,
+                expiry: Date.now() + (durationDays * 86400000)
+            };
+            localStorage.setItem('clees_session_v2', JSON.stringify(session));
+            appState.user = session;
+            updateUIUserStatus();
+        }
 
-            if (info.type === 'normal') {
-                slots = 10; duration = "12h"; label = "Normal User";
-            } else if (info.type === 'admin') {
-                slots = 99; duration = "48h"; label = "Admin";
-            }
+        function updateUIUserStatus() {
+            const u = appState.user;
+            let slots = 1, limit = "3h", typeLabel = "Free";
+            
+            if (u.type === 'normal') { slots = 10; limit = "12h"; typeLabel = "Normal"; }
+            else if (u.type === 'admin') { slots = 99; limit = "48h"; typeLabel = "Admin"; }
 
             // Desktop
-            document.getElementById('dSlots').innerText = slots;
-            document.getElementById('dExpiry').innerText = info.type === 'free' ? "No Key" : formatTime(info.expiry - Date.now());
+            safeSetHTML('dType', typeLabel);
+            safeSetHTML('dSlots', slots);
+            safeSetHTML('dLimit', limit);
             const prem = document.querySelector('.d-premium');
-            if (prem) prem.style.display = (info.type !== 'free') ? 'inline' : 'none';
+            if (prem) prem.style.display = u.type !== 'free' ? 'inline' : 'none';
 
             // Mobile
-            document.getElementById('mSlots').innerText = slots;
-            document.getElementById('mType').innerText = label;
-            document.getElementById('mDuration').innerText = duration;
+            safeSetHTML('mType', typeLabel);
+            safeSetHTML('mSlots', slots);
+            safeSetHTML('mDuration', limit);
+        }
+
+        function safeSetHTML(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
         }
 
         function handleResize() {
@@ -492,13 +674,8 @@
             const newPlatform = isDesktop ? 'desktop' : 'mobile';
             if (appState.platform !== newPlatform) {
                 appState.platform = newPlatform;
-                if (isDesktop) {
-                    document.querySelector('.desktop-view').style.display = 'flex';
-                    document.querySelector('.mobile-view').style.display = 'none';
-                } else {
-                    document.querySelector('.desktop-view').style.display = 'none';
-                    document.querySelector('.mobile-view').style.display = 'flex';
-                }
+                document.querySelector('.desktop-view').style.display = isDesktop ? 'flex' : 'none';
+                document.querySelector('.mobile-view').style.display = isDesktop ? 'none' : 'flex';
                 switchTab(appState.tab, newPlatform);
             }
         }
@@ -526,40 +703,23 @@
         }
 
         function switchTab(tab, platform) {
-            appState.tab = tab; appState.platform = platform;
+            appState.tab = tab;
             appState.search = ''; appState.rarity = 'all'; appState.variant = 'all'; appState.sort = 'newest';
-            updateUIState();
+            
+            // UI State
+            const tabs = document.querySelectorAll(platform === 'desktop' ? '.d-tab' : '.m-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            const index = tab === 'values' ? 0 : tab === 'market' ? 1 : 2;
+            if (tabs[index]) tabs[index].classList.add('active');
+
+            const filterBar = platform === 'desktop' ? document.getElementById('dFilterBar') : document.getElementById('mFilterBar');
+            filterBar.style.display = (tab === 'values') ? 'none' : (platform === 'desktop' ? 'flex' : 'block');
+
+            const searchInput = document.getElementById(platform === 'desktop' ? 'dSearch' : 'mSearch');
+            if (searchInput) searchInput.value = '';
+
             if (tab === 'values') renderValues();
             else fetchMarketData();
-        }
-
-        function updateUIState() {
-            const dTabs = document.querySelectorAll('.d-tab');
-            dTabs.forEach(b => b.classList.remove('active'));
-            if (appState.tab === 'values') dTabs[0].classList.add('active');
-            if (appState.tab === 'market') dTabs[1].classList.add('active');
-            if (appState.tab === 'my') dTabs[2].classList.add('active');
-
-            const dControls = document.getElementById('dControls');
-            const dFilters = document.getElementById('dFilterBar');
-            const dSearch = document.getElementById('dSearch');
-            const dSort = document.getElementById('dSort');
-
-            if (appState.tab === 'values') {
-                dControls.classList.remove('hidden'); dFilters.classList.remove('visible'); dSearch.value = ''; dSort.value = 'newest';
-            } else {
-                dControls.classList.remove('hidden'); dFilters.classList.add('visible'); dSearch.value = ''; dSort.value = 'newest';
-            }
-
-            const mTabs = document.querySelectorAll('.m-tab');
-            mTabs.forEach(b => b.classList.remove('active'));
-            if (appState.tab === 'values') mTabs[0].classList.add('active');
-            if (appState.tab === 'market') mTabs[1].classList.add('active');
-            if (appState.tab === 'my') mTabs[2].classList.add('active');
-
-            const mFilterBar = document.getElementById('mFilterBar');
-            const mSearch = document.getElementById('mSearch');
-            mFilterBar.style.display = 'none'; mSearch.value = '';
         }
 
         function selectEgg(egg, platform) {
@@ -589,7 +749,7 @@
 
         function handleSort(platform) { appState.sort = document.getElementById('dSort').value; if (appState.tab !== 'values') renderMarket(); }
         function setSortMobile(val) { appState.sort = val; if (appState.tab !== 'values') renderMarket(); }
-        
+
         function setRarity(val, platform) {
             appState.rarity = val;
             updateFilterButtons(platform);
@@ -603,22 +763,17 @@
         }
 
         function updateFilterButtons(platform) {
-            if (platform === 'desktop') {
-                document.querySelectorAll('#dFilterBar .d-filter-btn').forEach(btn => {
-                    if (btn.dataset.filter) btn.classList.toggle('active', btn.dataset.filter === appState.rarity);
-                    if (btn.dataset.variant) {
-                        let v = btn.dataset.variant.toLowerCase();
-                        btn.classList.toggle('active', v === 'all' ? appState.variant === 'all' : v === appState.variant);
-                    }
-                });
-            } else {
-                document.querySelectorAll('.m-filter-btn').forEach(btn => {
-                    if (btn.dataset.filter) btn.classList.toggle('active', btn.dataset.filter === appState.rarity);
-                });
-            }
+            const context = platform === 'desktop' ? '#dFilterBar ' : '';
+            document.querySelectorAll(`${context}.d-filter-btn, ${context}.m-filter-btn`).forEach(btn => {
+                if (btn.dataset.filter) btn.classList.toggle('active', btn.dataset.filter === appState.rarity);
+                if (btn.dataset.variant) {
+                    let v = btn.dataset.variant.toLowerCase();
+                    btn.classList.toggle('active', v === 'all' ? appState.variant === 'all' : v === appState.variant);
+                }
+            });
         }
 
-        // --- RENDERING ---
+        // --- RENDERERS ---
         function renderValues() {
             const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
             const data = PETS_DB[appState.egg];
@@ -637,14 +792,10 @@
 
                 if (pets.length > 0) {
                     if (appState.platform === 'desktop') {
-                        html += `<div style="margin-bottom:15px; color:var(--text-main); font-weight:800; font-size:0.95rem; opacity:0.8; text-transform:uppercase; border-bottom:1px solid #222; padding-bottom:5px;">${rarity}</div>`;
+                        html += `<div style="margin-bottom:15px; color:var(--text-muted); font-weight:800; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">${rarity}</div>`;
                         html += `<div class="d-grid">`;
                         pets.forEach(p => {
                             const dmnd = customDemands[p.name] || "";
-                            const nVal = p.prices.normal.toString();
-                            const gVal = p.prices.golden.toString();
-                            const rVal = p.prices.rainbow.toString();
-                            
                             html += `
                                 <div class="d-card rarity-${rarity}">
                                     <div class="d-card-header">
@@ -653,9 +804,18 @@
                                     </div>
                                     ${dmnd ? `<div class="d-demand ${dmnd}">${dmnd}</div>` : ''}
                                     <div class="d-price-row">
-                                        <div class="d-price-box"><span class="d-price-label">Normal</span><span class="d-price-val">${nVal}</span></div>
-                                        <div class="d-price-box"><span class="d-price-label">Golden</span><span class="d-price-val">${gVal}</span></div>
-                                        <div class="d-price-box"><span class="d-price-label">Rainbow</span><span class="d-price-val">${rVal}</span></div>
+                                        <div class="d-price-box">
+                                            <span class="d-price-label">Normal</span>
+                                            <span class="d-price-val">${p.prices.normal}</span>
+                                        </div>
+                                        <div class="d-price-box">
+                                            <span class="d-price-label">Golden</span>
+                                            <span class="d-price-val">${p.prices.golden}</span>
+                                        </div>
+                                        <div class="d-price-box">
+                                            <span class="d-price-label">Rainbow</span>
+                                            <span class="d-price-val">${p.prices.rainbow}</span>
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -684,14 +844,14 @@
                 }
             });
 
-            if (html === '') html = '<div class="empty-state">No pets match filters.</div>';
+            if (html === '') html = '<div class="empty-state">No match found.</div>';
             container.innerHTML = html;
         }
 
         function fetchMarketData() {
             const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
-            if (!db) { container.innerHTML = '<div class="empty-state">Database not connected.</div>'; return; }
-            container.innerHTML = '<div class="empty-state">Loading...</div>';
+            if (!db) { container.innerHTML = '<div class="empty-state">Database offline</div>'; return; }
+            container.innerHTML = '<div class="empty-state" style="color:var(--market-color);">Loading...</div>';
             
             db.collection('market_listings').get().then(snap => {
                 appState.data = [];
@@ -703,7 +863,7 @@
         }
 
         function formatTime(ms) {
-            if (ms < 0) return "0m";
+            if (ms < 0) return "Expired";
             const h = Math.floor(ms / 3600000);
             const m = Math.floor((ms % 3600000) / 60000);
             return `${h}h ${m}m`;
@@ -713,8 +873,6 @@
             const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
             const myId = localStorage.getItem('tapping_user_id');
             
-            // We filter based on what's in the database, but we visually indicate expired items (optional)
-            // The cleanup function removes them, so we usually don't see them here.
             let filtered = appState.data.filter(item => {
                 if (appState.search && !item.name.toLowerCase().includes(appState.search) && !item.discord.toLowerCase().includes(appState.search)) return false;
                 if (appState.rarity !== 'all' && item.rarity !== appState.rarity) return false;
@@ -750,12 +908,12 @@
                                 <div class="d-mkt-stat"><span>Rarity</span><strong>${item.rarity ? item.rarity.substr(0,1) : '-'}</strong></div>
                             </div>
                             ${item.negotiable ? '<div class="d-neg">Negotiable</div>' : ''}
-                            <div class="d-timer">Expires: ${expires}</div>
+                            <div class="d-timer">⏱️ ${expires}</div>
                             <div class="d-mkt-footer">
                                 <div class="d-seller">${item.discord}</div>
                                 <div class="d-acts">
                                     <button class="d-act-btn" onclick="copyText('${item.discord}')">Copy</button>
-                                    ${isMine ? `<button class="d-act-btn d-act-del" onclick="deleteListing('${item.id}')">X</button>` : ''}
+                                    ${isMine ? `<button class="d-act-btn d-act-del" onclick="deleteListing('${item.id}')">Del</button>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -780,12 +938,12 @@
                                 <div class="m-val"><span>Amt</span><strong>${item.amount || 1}</strong></div>
                                 <div class="m-val"><span>Rarity</span><strong>${item.rarity ? item.rarity.substr(0,1) : '-'}</strong></div>
                             </div>
-                            ${item.negotiable ? '<div style="font-size:0.7rem; color:orange; margin-top:5px; text-align:center;">Negotiable</div>' : ''}
-                            <div class="m-timer">Expires: ${expires}</div>
+                            ${item.negotiable ? '<div style="font-size:0.7rem; color:var(--premium); margin-top:5px; text-align:center; font-weight:700;">Negotiable</div>' : ''}
+                            <div class="m-timer">⏱️ ${expires}</div>
                             <div class="m-seller">${item.discord}</div>
                             <div class="m-actions">
                                 <button class="m-btn m-btn-copy" onclick="copyText('${item.discord}')">Copy</button>
-                                ${isMine ? `<button class="m-btn m-btn-del" onclick="deleteListing('${item.id}')">Delete</button>` : ''}
+                                ${isMine ? `<button class="m-btn m-btn-del" onclick="deleteListing('${item.id}')">Del</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -794,36 +952,29 @@
             container.innerHTML = html;
         }
 
-        // --- ACTIONS ---
-
-        function openKeyModal() { 
-            toggleDrawer(false); 
-            document.getElementById('keyModal').classList.add('open'); 
-            document.getElementById('keyError').innerText = ""; 
-        }
-
+        // --- MODALS & ACTIONS ---
         function openModal() {
+            const u = appState.user;
             const userId = localStorage.getItem('tapping_user_id') || ('usr_' + Math.random().toString(36).substr(2,9));
             localStorage.setItem('tapping_user_id', userId);
 
-            // 1. Check Current Slots & Duration Logic
-            const limit = getUserLimits(); // { slots, durationMs, type, lockedName }
+            if (!db) { alert("Database connection required."); return; }
 
-            if (!db) { alert("Database offline"); return; }
-
+            // Count active listings
             db.collection('market_listings').where('userId', '==', userId).get().then(snap => {
-                // Count only active (not expired) listings
-                let activeCount = 0;
+                let active = 0;
                 const now = Date.now();
                 snap.forEach(doc => {
-                    const data = doc.data();
-                    if (data.expiresAt > now) activeCount++;
+                    if (doc.data().expiresAt > now) active++;
                 });
 
-                if (activeCount >= limit.slots) {
-                    const msg = document.getElementById('errorMsg');
-                    if (msg) msg.innerText = `Limit reached (${activeCount}/${limit.slots}). Wait for expiry.`;
-                    if (appState.platform === 'mobile') alert(`Limit reached (${activeCount}/${limit.slots})`);
+                // Limits
+                let maxSlots = 1;
+                if (u.type === 'normal') maxSlots = 10;
+                if (u.type === 'admin') maxSlots = 99;
+
+                if (active >= maxSlots) {
+                    alert(`Limit Reached (${active}/${maxSlots}). Wait for item expiry.`);
                     return;
                 }
 
@@ -831,48 +982,73 @@
                 document.getElementById('sellModal').classList.add('open');
                 document.getElementById('sellForm').reset();
                 document.getElementById('errorMsg').innerText = "";
-                
-                // Discord Input Logic
+                document.getElementById('discordStatus').innerText = "";
+
                 const dInput = document.getElementById('pDiscord');
-                const dStatus = document.getElementById('discordStatus');
                 const trustText = document.getElementById('modalTrustText');
 
-                if (limit.type === 'free') {
-                    trustText.innerHTML = "🔒 <b>Standard Mode:</b> Random names allowed, 3h duration.";
+                // Form Logic based on User Type
+                if (u.type === 'free') {
+                    trustText.textContent = "🔓 Standard: Random name allowed (3h duration).";
+                    trustText.style.borderColor = "rgba(255,255,255,0.2)";
+                    dInput.removeAttribute('readonly');
                     dInput.placeholder = "Enter Any Name";
                     dInput.value = "";
-                    dInput.removeAttribute('readonly');
-                    dStatus.innerHTML = "";
-                } else if (limit.type === 'normal') {
-                    trustText.innerHTML = "🔒 <b>Key Mode:</b> Name locked to key owner.";
-                    dInput.value = limit.owner;
+                } else if (u.type === 'normal') {
+                    trustText.textContent = `🔒 Key Locked: Name must be ${u.owner}`;
+                    trustText.style.borderColor = "var(--market-color)";
                     dInput.setAttribute('readonly', 'readonly');
-                    dStatus.innerHTML = `Verified: ${limit.owner}`;
-                    dStatus.style.color = "var(--success)";
-                } else if (limit.type === 'admin') {
-                    trustText.innerHTML = "🔒 <b>Admin Mode:</b> Full access.";
+                    dInput.value = u.owner;
+                    document.getElementById('discordStatus').innerText = "Verified Identity";
+                } else {
+                    trustText.textContent = "🔓 Admin: Full access. Override enabled.";
+                    trustText.style.borderColor = "var(--premium)";
                     dInput.removeAttribute('readonly');
-                    dInput.value = "";
                     dInput.placeholder = "Admin Override";
-                    dStatus.innerHTML = "Admin privileges active";
-                    dStatus.style.color = "var(--premium)";
+                    dInput.value = "";
                 }
             });
+        }
+
+        function openKeyModal() { 
+            toggleDrawer(false);
+            document.getElementById('keyModal').classList.add('open'); 
+            document.getElementById('keyError').innerText = ""; 
         }
 
         function closeModal() {
             document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
         }
 
-        function getUserLimits() {
-            // Returns { slots, durationMs, type, owner }
-            if (appState.userInfo.type === 'admin') {
-                return { slots: 99, durationMs: 48 * 3600000, type: 'admin', owner: null };
-            } else if (appState.userInfo.type === 'normal') {
-                return { slots: 10, durationMs: 12 * 3600000, type: 'normal', owner: appState.userInfo.owner };
-            } else {
-                return { slots: 1, durationMs: 3 * 3600000, type: 'free', owner: null };
+        async function activateKey() {
+            const uInput = document.getElementById('userIdInput').value.trim();
+            const kInput = document.getElementById('userKeyInput').value.trim();
+            const err = document.getElementById('keyError');
+            
+            if (!uInput || !kInput) return err.innerText = "Fill all fields.";
+
+            // Admin Key
+            if (kInput === adminKey) {
+                saveSession('admin', kInput, null);
+                closeModal();
+                alert("Admin Access Granted (48h listings)");
+                return;
             }
+
+            // Normal Keys
+            const match = userKeys.find(k => k.key === kInput);
+            if (match) {
+                if (uInput.toLowerCase() === match.owner.toLowerCase()) {
+                    saveSession('normal', kInput, match.owner);
+                    closeModal();
+                    alert(`Key Validated: ${match.owner}`);
+                } else {
+                    err.innerText = `Key belongs to: ${match.owner}`;
+                }
+                return;
+            }
+
+            err.innerText = "Invalid Key";
         }
 
         async function submitListing(e) {
@@ -884,13 +1060,17 @@
             const price = parseInt(document.getElementById('pPrice').value);
             const discord = document.getElementById('pDiscord').value.trim();
             
-            if (!name || !price || !discord) { err.innerText = "Fill required fields"; return; }
+            if (!name || !price || !discord) { err.innerText = "Fill all fields"; return; }
+
+            btn.disabled = true; btn.innerText = "Posting...";
 
             const userId = localStorage.getItem('tapping_user_id');
-            const limits = getUserLimits();
+            const u = appState.user;
 
-            // Calculate Expiry
-            const expiresAt = Date.now() + limits.durationMs;
+            // Determine Duration
+            let durationMs = 3 * 3600000; // 3h default
+            if (u.type === 'normal') durationMs = 12 * 3600000; // 12h
+            if (u.type === 'admin') durationMs = 48 * 3600000; // 48h
 
             const data = {
                 name: name,
@@ -902,90 +1082,49 @@
                 negotiable: document.getElementById('pNegotiable').checked,
                 userId: userId,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                expiresAt: expiresAt,
-                // Store user type for sorting/filtering
-                userType: limits.type 
+                expiresAt: Date.now() + durationMs,
+                userType: u.type // Used for cleanup tracking if needed
             };
-
-            btn.disabled = true; btn.innerText = "Posting...";
 
             try {
                 await db.collection('market_listings').add(data);
                 closeModal();
-                switchTab('my', appState.platform);
+                switchTab('my', appState.platform); // Go to My List to show it
             } catch (e) {
                 err.innerText = "Error: " + e.message;
-                btn.disabled = false; btn.innerText = "Confirm";
+                btn.disabled = false; btn.innerText = "List Pet";
             }
-        }
-
-        async function activateKey() {
-            const uInput = document.getElementById('userIdInput').value.trim();
-            const kInput = document.getElementById('userKeyInput').value.trim();
-            const err = document.getElementById('keyError');
-            
-            if (!uInput || !kInput) return err.innerText = "Fill both fields.";
-
-            // 1. Admin Key
-            if (kInput === adminKey) {
-                saveSession('admin', kInput, null);
-                closeModal(); updateUserUI();
-                alert("Admin Access Granted (48h listings)");
-                return;
-            }
-
-            // 2. Normal Keys (Check against userKeys array)
-            const match = userKeys.find(k => k.key === kInput);
-            if (match) {
-                // Check if username matches (case insensitive)
-                if (uInput.toLowerCase() === match.owner.toLowerCase()) {
-                    saveSession('normal', kInput, match.owner);
-                    closeModal(); updateUserUI();
-                    alert(`Key Validated! Welcome ${match.owner}`);
-                } else {
-                    err.innerText = `Key belongs to ${match.owner}`;
-                }
-                return;
-            }
-
-            err.innerText = "Invalid Key";
-        }
-
-        function saveSession(type, key, owner) {
-            // 365 days for Admin, 7 days for Normal Key (just to keep session, listing logic handles expiry)
-            const expiryDays = type === 'admin' ? 365 : 7;
-            const session = {
-                type: type, // free, normal, admin
-                key: key,
-                owner: owner,
-                expiry: Date.now() + (expiryDays * 86400000)
-            };
-            localStorage.setItem('clees_user_session', JSON.stringify(session));
-            appState.userInfo = session;
         }
 
         async function deleteListing(id) {
-            if (!confirm("Delete listing?")) return;
-            try { await db.collection('market_listings').doc(id).delete(); renderMarket(); } catch (e) { alert(e.message); }
+            if (!confirm("Delete this listing?")) return;
+            try { 
+                await db.collection('market_listings').doc(id).delete(); 
+                // Optimistic update
+                appState.data = appState.data.filter(x => x.id !== id);
+                renderMarket(); 
+            } catch (e) { alert(e.message); }
         }
 
-        function copyText(text) { navigator.clipboard.writeText(text); }
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+            // Visual feedback could go here
+        }
 
-        // --- SCHEDULED CLEANUP (Requirement 4: Autodelete) ---
-        function scheduleCleanup() {
+        // --- CLEANUP SYSTEM ---
+        function startAutoCleanup() {
             if (!db) return;
-            // Run every 1 minute
+            // Run every minute
             setInterval(() => {
-                const cutoff = Date.now();
-                db.collection('market_listings').where('expiresAt', '<', cutoff).get().then(snap => {
+                const now = Date.now();
+                // Query for expired items
+                db.collection('market_listings').where('expiresAt', '<', now).get().then(snap => {
                     if (snap.empty) return;
                     const batch = db.batch();
                     snap.forEach(doc => batch.delete(doc.ref));
                     batch.commit().then(() => {
-                        // If we are in 'My List' or 'Market', refresh view
-                        if (appState.tab === 'my' || appState.tab === 'market') {
-                            fetchMarketData();
-                        }
+                        // Refresh view if active
+                        if (appState.tab !== 'values') fetchMarketData();
                     });
                 });
             }, 60000);
