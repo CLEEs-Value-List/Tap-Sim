@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CLEEs Value List</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root { 
+            --bg-app: #0a0b10; --bg-card: #13141a; --bg-sidebar: #0f0f13;
+            --text-main: #ffffff; --text-muted: #8b90a0;
+            --rarity-secret: #ff0055; --rarity-mythical: #d500f9; --rarity-legendary: #ffd600;
+            --market-color: #00d4ff; --danger: #ff3b3b; --success: #00ff88; --premium: #ffd700; --dead: #7e22ce;
+            --border-radius: 12px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* Desktop UI */
+        .desktop-view { display: none; height: 100vh; width: 100vw; flex-direction: row; background: var(--bg-app); color: var(--text-main); overflow: hidden; }
+        @media (min-width: 901px) { .desktop-view { display: flex; } }
+
+        .d-sidebar { width: 280px; background: var(--bg-sidebar); border-right: 1px solid rgba(255,255,255,0.05); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+        .d-sb-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .d-title { font-size: 1.2rem; font-weight: 800; color: var(--market-color); margin-bottom: 5px; display: block; }
+        .d-badge { font-size: 0.65rem; background: rgba(0, 255, 136, 0.15); color: var(--success); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--success); font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 8px; }
+        .d-discord { display: block; background: #5865F2; color: white; text-decoration: none; text-align: center; padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; }
+        .d-status { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .d-status-row { font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .d-premium { color: var(--premium); font-weight: 800; display: none; }
+        .d-key-btn { display: block; background: #5865F2; color: white; text-align: center; padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; cursor: pointer; border: none; width: 100%; transition: 0.2s; }
+        .d-help { font-size: 0.7rem; color: #aaa; line-height: 1.5; margin-top: 10px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .d-egg-list { list-style: none; margin-top: 10px; }
+        .d-egg-item { padding: 10px; margin-bottom: 6px; background: rgba(255,255,255,0.03); border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; font-weight: 600; font-size: 0.9rem; }
+        .d-egg-item:hover { background: rgba(255,255,255,0.08); transform: translateX(3px); }
+        .d-egg-item.active { background: var(--market-color); color: #000; border-color: white; }
+
+        .d-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+        .d-top-bar { padding: 15px 25px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; background: var(--bg-app); flex-shrink: 0; }
+        .d-tabs { display: flex; background: var(--bg-card); padding: 6px; border-radius: 12px; gap: 6px; }
+        .d-tab { padding: 10px 20px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 8px; font-weight: 700; font-size: 0.95rem; min-width: 100px; }
+        .d-tab:hover { background: rgba(255,255,255,0.05); color: white; transform: scale(1.05); }
+        .d-tab.active { background: #2a2c35; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        
+        .d-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .d-controls.hidden { display: none; }
+        .d-input { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 0.9rem; height: 40px; }
+        .d-btn { background: var(--market-color); color: #000; padding: 0 20px; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.9rem; height: 40px; white-space: nowrap; }
+        
+        .d-filter-bar { padding: 10px 25px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); display: none; gap: 15px; flex-wrap: wrap; flex-shrink: 0; }
+        .d-filter-bar.visible { display: flex; }
+        .d-filter-btn { font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #888; cursor: pointer; font-weight: 700; text-transform: uppercase; }
+        .d-filter-btn.active { background: #333; color: white; border-color: white; }
+        .d-filter-btn[data-filter="Secret"].active { background: var(--rarity-secret); border-color: var(--rarity-secret); }
+        .d-filter-btn[data-filter="Mythical"].active { background: var(--rarity-mythical); border-color: var(--rarity-mythical); }
+        .d-filter-btn[data-filter="Legendary"].active { background: var(--rarity-legendary); border-color: var(--rarity-legendary); color: black; }
+        .d-filter-btn[data-variant="Golden"].active { background: #ffd700; color: black; border-color: #ffd700; }
+        .d-filter-btn[data-variant="Rainbow"].active { background: #00ffff; color: black; border-color: #00ffff; }
+
+        .d-content { flex: 1; overflow-y: auto; padding: 20px 25px; background: var(--bg-app); position: relative; }
+        .d-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+
+        /* DESKTOP CARDS - 3 COLUMN PRICES */
+        .d-card { background: var(--bg-card); border-radius: 12px; padding: 15px; border: 1px solid rgba(255,255,255,0.08); transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 10px; height: 200px; }
+        .d-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.3); background: #1a1b22; }
+        .d-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; border-radius: 12px 0 0 12px; background: #333; }
+        .d-card.rarity-Secret::before { background: var(--rarity-secret); }
+        .d-card.rarity-Mythical::before { background: var(--rarity-mythical); }
+        .d-card.rarity-Legendary::before { background: var(--rarity-legendary); }
+        
+        .d-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.05rem; margin-bottom: 5px; }
+        .d-card-badge { font-size: 0.65rem; background: #222; padding: 2px 6px; border-radius: 4px; color: #aaa; text-transform: uppercase; }
+        
+        /* NEW 3 COLUMN GRID FOR PRICES */
+        .d-price-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: auto; }
+        .d-price-box { background: #111; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
+        .d-price-label { font-size: 0.55rem; color: #888; text-transform: uppercase; font-weight: 700; }
+        .d-price-val { font-family: monospace; font-size: 0.9rem; color: #fff; font-weight: 800; }
+        /* Visual Flair for the Price Boxes */
+        .d-price-box:nth-child(1) { border-top: 2px solid #888; } /* Normal */
+        .d-price-box:nth-child(2) { border-top: 2px solid var(--premium); } /* Golden */
+        .d-price-box:nth-child(3) { border-top: 2px solid var(--market-color); } /* Rainbow */
+
+        .d-demand { text-align: center; padding: 4px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; border: 1px solid transparent; margin-top: 5px; }
+        .d-demand.High { color: var(--success); background: rgba(0,255,136,0.1); border-color: var(--success); }
+        .d-demand.Medium { color: #ffaa00; background: rgba(255,170,0,0.1); border-color: #ffaa00; }
+        .d-demand.Low { color: var(--danger); background: rgba(255,59,59,0.1); border-color: var(--danger); }
+
+        /* Desktop Market */
+        .d-mkt-card { height: auto; min-height: 210px; }
+        .d-mkt-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+        .d-mkt-stat { background: #111; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid #222; display: flex; flex-direction: column; justify-content: center; }
+        .d-mkt-stat span { font-size: 0.6rem; color: #666; text-transform: uppercase; font-weight: 700; }
+        .d-mkt-stat strong { font-size: 0.85rem; color: #eee; font-family: monospace; }
+        .d-mkt-stat.price strong { color: var(--market-color); font-size: 1rem; }
+        .d-mkt-footer { display: grid; grid-template-columns: 1fr auto; gap: 5px; align-items: center; margin-top: auto; }
+        .d-seller { font-size: 0.75rem; font-family: monospace; color: var(--market-color); background: #0f0f13; padding: 5px; border-radius: 4px; border: 1px solid #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .d-acts { display: flex; gap: 5px; }
+        .d-act-btn { padding: 5px 8px; font-size: 0.7rem; border-radius: 4px; border: none; cursor: pointer; font-weight: 700; background: rgba(255,255,255,0.05); color: white; }
+        .d-act-btn:hover { background: rgba(255,255,255,0.15); }
+        .d-act-del { background: rgba(255,59,59,0.1); color: var(--danger); border: 1px solid rgba(255,59,59,0.2); }
+        .d-act-del:hover { background: var(--danger); color: white; }
+        .d-neg { text-align: center; font-size: 0.7rem; color: orange; font-style: italic; grid-column: 1 / -1; margin-top: 2px; }
+
+        /* Mobile UI */
+        .mobile-view { display: none; flex-direction: column; height: 100vh; width: 100vw; background: var(--bg-app); color: var(--text-main); }
+        @media (max-width: 900px) { .mobile-view { display: flex; } }
+        
+        .m-header { padding: 10px 15px; background: var(--bg-sidebar); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 10; }
+        .m-title { font-size: 1rem; font-weight: 800; color: var(--market-color); }
+        .m-menu-btn { background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        .m-tabs { display: flex; background: var(--bg-app); padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
+        .m-tab { flex: 1; padding: 10px 5px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; }
+        .m-tab.active { color: white; border-bottom-color: var(--market-color); }
+
+        .m-filter-bar { padding: 10px; background: #111; border-bottom: 1px solid rgba(255,255,255,0.05); display: none; flex-shrink: 0; }
+        .m-filter-row { display: flex; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
+        .m-filter-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #888; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .m-filter-btn.active { background: #333; color: white; border-color: white; }
+        .m-search-input { width: 100%; padding: 10px; border-radius: 6px; background: #0f0f13; border: 1px solid #333; color: white; }
+
+        .m-content { flex: 1; overflow-y: auto; padding: 10px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+        .m-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+        .m-card { background: var(--bg-card); border-radius: 10px; padding: 12px; border: 1px solid rgba(255,255,255,0.08); position: relative; }
+        .m-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 10px 0 0 10px; background: #333; }
+        .m-card[data-rarity="Secret"]::before { background: var(--rarity-secret); }
+        .m-card[data-rarity="Mythical"]::before { background: var(--rarity-mythical); }
+        .m-card[data-rarity="Legendary"]::before { background: var(--rarity-legendary); }
+        
+        .m-card-header { display: flex; justify-content: space-between; font-weight: 800; font-size: 1rem; margin-bottom: 5px; }
+        .m-card-badge { font-size: 0.6rem; background: #222; padding: 2px 6px; border-radius: 4px; color: #ccc; text-transform: uppercase; }
+        .m-card-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 6px; }
+        .m-val { text-align: center; font-size: 0.75rem; }
+        .m-val span { display: block; font-size: 0.55rem; color: #888; text-transform: uppercase; }
+        .m-val strong { font-family: monospace; font-size: 0.95rem; color: #fff; }
+        .m-dmnd { font-size: 0.65rem; padding: 3px; border-radius: 4px; text-align: center; margin-top: 5px; font-weight: 800; text-transform: uppercase; }
+        .dmnd-High { background: rgba(0,255,136,0.1); color: var(--success); border: 1px solid var(--success); }
+        .dmnd-Medium { background: rgba(255,170,0,0.1); color: #ffaa00; border: 1px solid #ffaa00; }
+        .dmnd-Low { background: rgba(255,59,59,0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .dmnd-Dead { background: rgba(126,34,255,0.1); color: var(--dead); border: 1px solid var(--dead); }
+
+        .m-actions { display: flex; gap: 5px; margin-top: 8px; }
+        .m-btn { flex: 1; padding: 6px; border: none; border-radius: 5px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
+        .m-btn-copy { background: rgba(0,212,255,0.15); color: var(--market-color); border: 1px solid rgba(0,212,255,0.3); }
+        .m-btn-del { background: rgba(255,59,59,0.15); color: var(--danger); border: 1px solid rgba(255,59,59,0.3); }
+        .m-seller { font-size: 0.7rem; font-family: monospace; color: var(--market-color); opacity: 0.8; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+
+        .m-actions-bar { position: fixed; bottom: 10px; right: 10px; display: flex; gap: 8px; z-index: 50; }
+        .m-fab { width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 1.2rem; font-weight: 800; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+        .m-fab.search { background: var(--bg-card); color: white; border: 1px solid #444; }
+        .m-fab.list { background: var(--market-color); color: #000; }
+
+        .m-drawer { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-sidebar); z-index: 100; transition: left 0.3s ease; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
+        .m-drawer.open { left: 0; }
+        .m-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .m-overlay.open { opacity: 1; pointer-events: auto; }
+        .m-drawer-close { background: transparent; border: none; color: white; font-size: 1.5rem; align-self: flex-end; margin-bottom: 10px; }
+        .m-drawer-header { font-weight: 800; font-size: 1.2rem; color: var(--market-color); margin-bottom: 20px; }
+        .m-drawer-section { margin-bottom: 20px; }
+        .m-drawer-title { font-size: 0.8rem; color: #888; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; }
+        .m-drawer-info { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.8rem; }
+        .m-drawer-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .m-drawer-btn { display: block; width: 100%; padding: 10px; background: #1a1d23; border: 1px solid #333; color: white; margin-bottom: 5px; border-radius: 6px; text-align: left; font-weight: 600; cursor: pointer; }
+        .m-drawer-btn.active { background: var(--market-color); color: #000; border-color: var(--market-color); }
+        .m-drawer-btn.discord { background: #5865F2; border-color: #5865F2; text-align: center; }
+        .m-drawer-btn.key { background: #2a2e35; color: var(--market-color); border: 1px solid var(--market-color); text-align: center; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 200; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: #16181d; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto; }
+        .modal h2 { margin-bottom: 15px; color: var(--market-color); font-size: 1.2rem; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; background: #0f1014; border: 1px solid #333; border-radius: 6px; color: white; outline: none; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; }
+        .btn-primary { background: var(--market-color); color: #000; }
+        .btn-secondary { background: #2a2e35; color: white; border: 1px solid #444; }
+        .error-msg { color: var(--danger); font-size: 0.85rem; height: 1.2em; margin-top: 5px; }
+        .trust-box { background: rgba(0, 255, 136, 0.1); border: 1px solid var(--success); padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; }
+        .verify-msg { font-size: 0.75rem; margin-top: 3px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+    <!-- DESKTOP UI -->
+    <div class="desktop-view" id="desktopUI">
+        <aside class="d-sidebar">
+            <div class="d-sb-header">
+                <span class="d-title">CLEEs Value List</span>
+                <a href="https://discord.gg/Xq6qNSFw" target="_blank" class="d-discord">Join Discord</a>
+            </div>
+            <div class="d-status" id="dStatusBox">
+                <div class="d-status-row"><span>Status</span> <span id="dSlots">1</span> <span class="d-premium">PREMIUM</span></div>
+                <div class="d-status-row"><span>Expiry</span> <span id="dExpiry">24h</span></div>
+            </div>
+            <button class="d-key-btn" onclick="openKeyModal()">Verify / Access Key</button>
+            <!-- UPDATED TEXT HERE -->
+            <div class="d-help">
+                • 100% FREE: Just to verify you are a real user.<br>
+                • Standard Users: 1 slot (24h).<br>
+                • Keys: Prevent fake offers & limit spam.<br>
+                • Get a Key: Join Discord -> Request from Admin.
+            </div>
+            <div style="margin-top:15px; font-size:0.75rem; color:#555; font-weight:700; text-transform:uppercase; margin-bottom:5px;">Categories</div>
+            <ul class="d-egg-list" id="dEggList"></ul>
+        </aside>
+        
+        <main class="d-main">
+            <header class="d-top-bar">
+                <div class="d-tabs">
+                    <button class="d-tab active" onclick="switchTab('values', 'desktop')">Values</button>
+                    <button class="d-tab" onclick="switchTab('market', 'desktop')">Market</button>
+                    <button class="d-tab" onclick="switchTab('my', 'desktop')">My List</button>
+                </div>
+                <div class="d-controls" id="dControls">
+                    <input type="text" class="d-input" id="dSearch" placeholder="Search..." onkeyup="handleSearch('desktop')">
+                    <select class="d-input" id="dSort" onchange="handleSort('desktop')">
+                        <option value="newest">Newest</option>
+                        <option value="price-asc">Low-High</option>
+                        <option value="price-desc">High-Low</option>
+                    </select>
+                    <button class="d-btn" onclick="openModal()">+ List Pet</button>
+                </div>
+            </header>
+            
+            <div class="d-filter-bar" id="dFilterBar">
+                <div class="d-controls">
+                    <span style="color:#888; font-size:0.8rem; font-weight:700;">RARITY:</span>
+                    <button class="d-filter-btn active" data-filter="all" onclick="setRarity('all', 'desktop')">All</button>
+                    <button class="d-filter-btn" data-filter="Secret" onclick="setRarity('Secret', 'desktop')">Secret</button>
+                    <button class="d-filter-btn" data-filter="Mythical" onclick="setRarity('Mythical', 'desktop')">Mythical</button>
+                    <button class="d-filter-btn" data-filter="Legendary" onclick="setRarity('Legendary', 'desktop')">Legendary</button>
+                    <span style="color:#888; font-size:0.8rem; font-weight:700; margin-left:10px;">VAR:</span>
+                    <button class="d-filter-btn active" data-variant="All" onclick="setVariant('All', 'desktop')">All</button>
+                    <button class="d-filter-btn" data-variant="Golden" onclick="setVariant('Golden', 'desktop')">Golden</button>
+                    <button class="d-filter-btn" data-variant="Rainbow" onclick="setVariant('Rainbow', 'desktop')">Rainbow</button>
+                </div>
+            </div>
+
+            <div class="d-content" id="dContentArea"></div>
+        </main>
+    </div>
+
+    <!-- MOBILE UI -->
+    <div class="mobile-view" id="mobileUI">
+        <div class="m-header">
+            <span class="m-title">CLEEs List</span>
+            <button class="m-menu-btn" onclick="toggleDrawer(true)">☰</button>
+        </div>
+
+        <div class="m-tabs">
+            <button class="m-tab active" onclick="switchTab('values', 'mobile')">Values</button>
+            <button class="m-tab" onclick="switchTab('market', 'mobile')">Market</button>
+            <button class="m-tab" onclick="switchTab('my', 'mobile')">My List</button>
+        </div>
+
+        <div class="m-filter-bar" id="mFilterBar">
+            <input type="text" class="m-search-input" id="mSearch" placeholder="Search..." onkeyup="handleSearch('mobile')">
+            <div style="height:5px"></div>
+            <div class="m-filter-row">
+                <span style="color:#888; font-size:0.7rem; align-self:center;">Rarity:</span>
+                <button class="m-filter-btn active" data-filter="all" onclick="setRarity('all', 'mobile')">All</button>
+                <button class="m-filter-btn" data-filter="Secret" onclick="setRarity('Secret', 'mobile')">Sec</button>
+                <button class="m-filter-btn" data-filter="Mythical" onclick="setRarity('Mythical', 'mobile')">Myth</button>
+                <button class="m-filter-btn" data-filter="Legendary" onclick="setRarity('Legendary', 'mobile')">Leg</button>
+                <span style="color:#888; font-size:0.7rem; align-self:center; margin-left:5px;">Sort:</span>
+                <button class="m-filter-btn" onclick="setSortMobile('newest')">New</button>
+                <button class="m-filter-btn" onclick="setSortMobile('price-asc')">Low</button>
+                <button class="m-filter-btn" onclick="setSortMobile('price-desc')">High</button>
+            </div>
+        </div>
+
+        <div class="m-content" id="mContentArea"></div>
+
+        <div class="m-actions-bar">
+            <button class="m-fab search" onclick="toggleFilters()">🔍</button>
+            <button class="m-fab list" onclick="openModal()">+</button>
+        </div>
+
+        <!-- Drawer -->
+        <div class="m-overlay" id="mOverlay" onclick="toggleDrawer(false)"></div>
+        <div class="m-drawer" id="mDrawer">
+            <button class="m-drawer-close" onclick="toggleDrawer(false)">×</button>
+            <div class="m-drawer-header">Menu</div>
+            <div class="m-drawer-section">
+                <div class="m-drawer-title">User Status</div>
+                <div class="m-drawer-info">
+                    <div class="m-drawer-row"><span>Slots:</span> <span id="mSlots">1</span></div>
+                    <div class="m-drawer-row"><span>Type:</span> <span id="mType">Free</span></div>
+                </div>
+                <button class="m-drawer-btn key" onclick="openKeyModal()">Verify / Key</button>
+            </div>
+            <div class="m-drawer-section">
+                <div class="m-drawer-title">Categories</div>
+                <div id="mEggList" style="display: flex; flex-direction: column; gap: 5px;"></div>
+            </div>
+            <div class="m-drawer-section">
+                <button class="m-drawer-btn discord" onclick="window.open('https://discord.gg/Xq6qNSFw', '_blank')">Join Discord</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal-overlay" id="sellModal">
+        <div class="modal">
+            <h2>Post Listing</h2>
+            <div class="trust-box">This is FREE. Verification prevents spam.</div>
+            <form id="sellForm" onsubmit="submitListing(event)">
+                <div class="form-group"><label>Pet Name</label><input type="text" id="pName" list="petList" required></div>
+                <div class="form-group" style="display:flex; gap:10px;">
+                    <div style="flex:1;"><label>Rarity</label><select id="pRarity"><option>Secret</option><option>Mythical</option><option>Legendary</option></select></div>
+                    <div style="flex:1;"><label>Variant</label><select id="pVariant"><option>Normal</option><option>Golden</option><option>Rainbow</option></select></div>
+                </div>
+                <div class="form-group" style="display:flex; gap:10px;">
+                    <div style="flex:1;"><label>Amount</label><input type="number" id="pAmount" value="1" required></div>
+                    <div style="flex:1;"><label>Price</label><input type="number" id="pPrice" required></div>
+                </div>
+                <div class="form-group"><label>Discord</label><input type="text" id="pDiscord" required oninput="verifyDiscord(this)"><div id="verifyMsg" class="verify-msg"></div></div>
+                <div class="checkbox-group"><input type="checkbox" id="pNegotiable"><label>Allow Negotiation</label></div>
+                <div class="error-msg" id="errorMsg"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="keyModal">
+        <div class="modal">
+            <h2>Verify Access</h2>
+            <div class="form-group"><label>User ID</label><input type="text" id="userIdInput" placeholder="User#1234"></div>
+            <div class="form-group"><label>Key</label><input type="text" id="userKeyInput" placeholder="Paste Key"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="activateKey()">Activate</button>
+            <div class="error-msg" id="keyError"></div>
+            <div class="modal-actions" style="margin-top:10px;"><button class="btn btn-secondary" onclick="closeModal()">Close</button></div>
+        </div>
+    </div>
+
+    <datalist id="petList"></datalist>
+
+    <script>
+        // --- CONFIGURATION ---
+        const adminKey = "CLEE"; 
+        const validKeys = []; 
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAeTqBRr3_67LUY8_ARHOyvG1vmPo-fY0Q",
+            authDomain: "clees-value1.firebaseapp.com",
+            projectId: "clees-value1",
+            storageBucket: "clees-value1.firebasestorage.app",
+            messagingSenderId: "448532949070",
+            appId: "1:448532949070:web:d3f8c0bbbc71ec326efb1f"
+        };
+
+        let db = null;
+        if (firebaseConfig.projectId && firebaseConfig.projectId.length > 5) {
+            try {
+                if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+            } catch (e) { console.error(e); }
+        }
+
+        // --- PET DATA ---
+        const PETS_DB = {
+            "New Year Egg": {
+                "Secret": [{ name: "2026 Overload", prices: { normal: 1200, golden: 500, rainbow: 5500 }, demand: "High" }, { name: "New Year Dragon", prices: { normal: 500, golden: 1800, rainbow: 2000 }, demand: "High" }, { name: "2026 Balloons", prices: { normal: 100, golden: 400, rainbow: 450 }, demand: "High" }],
+                "Mythical": [{ name: "Starshine Warrior", prices: { normal: 2, golden: 8, rainbow: 12 }, demand: "Medium" }],
+                "Legendary": [{ name: "Mr. Sprinkler", prices: { normal: "N.A.", golden: 1, rainbow: 2 }, demand: "Low" }]
+            },
+            "Christmas Egg": {
+                "Secret": [{ name: "Gilded Seraphim", prices: { normal: 1000, golden: 3700, rainbow: 4200 }, demand: "High" }, { name: "Frost Spirit", prices: { normal: 50, golden: 160, rainbow: 220 }, demand: "Medium" }, { name: "Christmas Tree", prices: { normal: 120, golden: 500, rainbow: 600 }, demand: "Medium" }],
+                "Mythical": [{ name: "Nutcracker", prices: { normal: "N.A.", golden: "N.A.", rainbow: "~1" }, demand: "Low" }],
+                "Legendary": [{ name: "Ornament", prices: { normal: "N.A.", golden: "N.A.", rainbow: "N.A." }, demand: "Dead" }]
+            },
+            "Space Egg": {
+                "Secret": [{ name: "Luminary Star", prices: { normal: 100, golden: 490, rainbow: 500 }, demand: "Medium" }, { name: "Cosmic Chaos", prices: { normal: 480, golden: 2050, rainbow: 2200 }, demand: "High" }],
+                "Mythical": [{ name: "UFO Alien", prices: { normal: "N.A.", golden: 1, rainbow: 2 }, demand: "Low" }],
+                "Legendary": [{ name: "Stellar Eye", prices: { normal: "N.A.", golden: "N.A.", rainbow: "N.A." }, demand: "Dead" }]
+            },
+            "5M Egg": {
+                "Secret": [{ name: "5M Frost Monarch", prices: { normal: 1150, golden: 4500, rainbow: 5000 }, demand: "High" }, { name: "5M North Star", prices: { normal: 250, golden: 800, rainbow: 1200 }, demand: "Medium" }, { name: "Frosty Snowman", prices: { normal: 100, golden: 400, rainbow: 450 }, demand: "Medium" }]
+            },
+            "Special Pets": {
+                "Secret": [{ name: "2026 Star", prices: { normal: 1100, golden: 4200, rainbow: 4730 }, demand: "High" }, { name: "Disco Lord", prices: { normal: 1400, golden: 5600, rainbow: 6300 }, demand: "High" }, { name: "Hooded Krampus", prices: { normal: 460, golden: 1600, rainbow: 2000 }, demand: "High" }, { name: "Celestial Candycane", prices: { normal: 900, golden: 3100, rainbow: 4000 }, demand: "High" }]
+            },
+            "Leaderboard": {
+                "Secret": [{ name: "TOP 10", prices: { normal: 12000, golden: "O/C", rainbow: "O/C" }, demand: "High" }, { name: "TOP 100", prices: { normal: 1300, golden: 4000, rainbow: 4800 }, demand: "High" }, { name: "TOP 250", prices: { normal: 550, golden: 1900, rainbow: 2500 }, demand: "Medium" }]
+            }
+        };
+
+        const customDemands = {
+            "2026 Balloons": "High", "2026 Overload": "High", "New Year Dragon": "High", "Starshine Warrior": "Medium", "Mr. Sprinkler": "Low",
+            "Frost Spirit": "Medium", "Gilded Seraphim": "High", "Christmas Tree": "Medium", "Nutcracker": "Low", "Ornament": "Dead",
+            "Luminary Star": "Medium", "Cosmic Chaos": "High", "UFO Alien": "Low", "Stellar Eye": "Dead",
+            "5M Frost Monarch": "High", "5M North Star": "Medium", "Frosty Snowman": "Medium",
+            "2026 Star": "High", "Disco Lord": "High", "Hooded Krampus": "High", "Celestial Candycane": "High",
+            "TOP 10": "High", "TOP 100": "High", "TOP 250": "Medium"
+        };
+
+        const verifiedUsers = []; 
+
+        // --- STATE ---
+        let appState = {
+            tab: 'values',
+            egg: 'New Year Egg',
+            search: '',
+            rarity: 'all',
+            variant: 'all',
+            sort: 'newest',
+            platform: 'desktop',
+            data: []
+        };
+
+        // --- INITIALIZATION ---
+        function init() {
+            populateDatalist();
+            renderEggs();
+            checkUserStatus();
+            switchTab('values', window.innerWidth > 900 ? 'desktop' : 'mobile');
+            if (db) scheduleCleanup();
+            window.addEventListener('resize', handleResize);
+        }
+
+        function handleResize() {
+            const isDesktop = window.innerWidth > 900;
+            const newPlatform = isDesktop ? 'desktop' : 'mobile';
+            if (appState.platform !== newPlatform) {
+                appState.platform = newPlatform;
+                if (isDesktop) {
+                    document.querySelector('.desktop-view').style.display = 'flex';
+                    document.querySelector('.mobile-view').style.display = 'none';
+                } else {
+                    document.querySelector('.desktop-view').style.display = 'none';
+                    document.querySelector('.mobile-view').style.display = 'flex';
+                }
+                switchTab(appState.tab, newPlatform);
+            }
+        }
+
+        function populateDatalist() {
+            const dl = document.getElementById('petList');
+            dl.innerHTML = '';
+            const allNames = new Set();
+            Object.keys(PETS_DB).forEach(egg => {
+                Object.keys(PETS_DB[egg]).forEach(cat => PETS_DB[egg][cat].forEach(p => allNames.add(p.name)));
+            });
+            allNames.forEach(name => { const opt = document.createElement('option'); opt.value = name; dl.appendChild(opt); });
+        }
+
+        function renderEggs() {
+            const dHtml = Object.keys(PETS_DB).map(egg => 
+                `<li class="d-egg-item ${appState.egg === egg ? 'active' : ''}" onclick="selectEgg('${egg}', 'desktop')">${egg}</li>`
+            ).join('');
+            document.getElementById('dEggList').innerHTML = dHtml;
+
+            const mHtml = Object.keys(PETS_DB).map(egg => 
+                `<button class="m-drawer-btn ${appState.egg === egg ? 'active' : ''}" onclick="selectEgg('${egg}', 'mobile')">${egg}</button>`
+            ).join('');
+            document.getElementById('mEggList').innerHTML = mHtml;
+        }
+
+        function switchTab(tab, platform) {
+            appState.tab = tab; appState.platform = platform;
+            appState.search = ''; appState.rarity = 'all'; appState.variant = 'all'; appState.sort = 'newest';
+            updateUIState();
+            if (tab === 'values') renderValues();
+            else fetchMarketData();
+        }
+
+        function updateUIState() {
+            const dTabs = document.querySelectorAll('.d-tab');
+            dTabs.forEach(b => b.classList.remove('active'));
+            if (appState.tab === 'values') dTabs[0].classList.add('active');
+            if (appState.tab === 'market') dTabs[1].classList.add('active');
+            if (appState.tab === 'my') dTabs[2].classList.add('active');
+
+            const dControls = document.getElementById('dControls');
+            const dFilters = document.getElementById('dFilterBar');
+            const dSearch = document.getElementById('dSearch');
+            const dSort = document.getElementById('dSort');
+
+            if (appState.tab === 'values') {
+                dControls.classList.remove('hidden'); dFilters.classList.remove('visible'); dSearch.value = ''; dSort.value = 'newest';
+            } else {
+                dControls.classList.remove('hidden'); dFilters.classList.add('visible'); dSearch.value = ''; dSort.value = 'newest';
+            }
+
+            const mTabs = document.querySelectorAll('.m-tab');
+            mTabs.forEach(b => b.classList.remove('active'));
+            if (appState.tab === 'values') mTabs[0].classList.add('active');
+            if (appState.tab === 'market') mTabs[1].classList.add('active');
+            if (appState.tab === 'my') mTabs[2].classList.add('active');
+
+            const mFilterBar = document.getElementById('mFilterBar');
+            const mSearch = document.getElementById('mSearch');
+            mFilterBar.style.display = 'none'; mSearch.value = '';
+        }
+
+        function selectEgg(egg, platform) {
+            appState.egg = egg;
+            renderEggs();
+            if (appState.tab === 'values') renderValues();
+            if (platform === 'mobile') toggleDrawer(false);
+        }
+
+        function toggleFilters() {
+            const bar = document.getElementById('mFilterBar');
+            bar.style.display = bar.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toggleDrawer(open) {
+            const d = document.getElementById('mDrawer');
+            const o = document.getElementById('mOverlay');
+            if (open) { d.classList.add('open'); o.classList.add('open'); }
+            else { d.classList.remove('open'); o.classList.remove('open'); }
+        }
+
+        function handleSearch(platform) {
+            const val = platform === 'desktop' ? document.getElementById('dSearch').value : document.getElementById('mSearch').value;
+            appState.search = val.toLowerCase();
+            if (appState.tab === 'values') renderValues(); else renderMarket();
+        }
+
+        function handleSort(platform) { appState.sort = document.getElementById('dSort').value; if (appState.tab !== 'values') renderMarket(); }
+        function setSortMobile(val) { appState.sort = val; if (appState.tab !== 'values') renderMarket(); }
+        
+        function setRarity(val, platform) {
+            appState.rarity = val;
+            updateFilterButtons(platform);
+            if (appState.tab === 'values') renderValues(); else renderMarket();
+        }
+
+        function setVariant(val, platform) {
+            appState.variant = val.toLowerCase();
+            updateFilterButtons(platform);
+            if (appState.tab === 'values') renderValues(); else renderMarket();
+        }
+
+        function updateFilterButtons(platform) {
+            if (platform === 'desktop') {
+                document.querySelectorAll('#dFilterBar .d-filter-btn').forEach(btn => {
+                    if (btn.dataset.filter) btn.classList.toggle('active', btn.dataset.filter === appState.rarity);
+                    if (btn.dataset.variant) {
+                        let v = btn.dataset.variant.toLowerCase();
+                        btn.classList.toggle('active', v === 'all' ? appState.variant === 'all' : v === appState.variant);
+                    }
+                });
+            } else {
+                document.querySelectorAll('.m-filter-btn').forEach(btn => {
+                    if (btn.dataset.filter) btn.classList.toggle('active', btn.dataset.filter === appState.rarity);
+                });
+            }
+        }
+
+        // --- RENDERING ---
+        function renderValues() {
+            const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
+            const data = PETS_DB[appState.egg];
+            if (!data) { container.innerHTML = '<div class="empty-state">No Category</div>'; return; }
+
+            let html = '';
+            const rarities = ['Secret', 'Mythical', 'Legendary'];
+
+            rarities.forEach(rarity => {
+                if (!data[rarity]) return;
+                let pets = data[rarity].filter(p => {
+                    if (appState.search && !p.name.toLowerCase().includes(appState.search)) return false;
+                    if (appState.rarity !== 'all' && rarity !== appState.rarity) return false;
+                    return true;
+                });
+
+                if (pets.length > 0) {
+                    if (appState.platform === 'desktop') {
+                        html += `<div style="margin-bottom:15px; color:var(--text-main); font-weight:800; font-size:0.95rem; opacity:0.8; text-transform:uppercase; border-bottom:1px solid #222; padding-bottom:5px;">${rarity}</div>`;
+                        html += `<div class="d-grid">`;
+                        pets.forEach(p => {
+                            const dmnd = customDemands[p.name] || "";
+                            // Ensure values are strings
+                            const nVal = p.prices.normal.toString();
+                            const gVal = p.prices.golden.toString();
+                            const rVal = p.prices.rainbow.toString();
+                            
+                            html += `
+                                <div class="d-card rarity-${rarity}">
+                                    <div class="d-card-header">
+                                        <span>${p.name}</span>
+                                        <span class="d-card-badge">Values</span>
+                                    </div>
+                                    ${dmnd ? `<div class="d-demand ${dmnd}">${dmnd}</div>` : ''}
+                                    
+                                    <!-- 3 COLUMN PRICES LAYOUT -->
+                                    <div class="d-price-row">
+                                        <div class="d-price-box">
+                                            <span class="d-price-label">Normal</span>
+                                            <span class="d-price-val">${nVal}</span>
+                                        </div>
+                                        <div class="d-price-box">
+                                            <span class="d-price-label">Golden</span>
+                                            <span class="d-price-val">${gVal}</span>
+                                        </div>
+                                        <div class="d-price-box">
+                                            <span class="d-price-label">Rainbow</span>
+                                            <span class="d-price-val">${rVal}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += `</div>`;
+                    } else {
+                        pets.forEach(p => {
+                            const dmnd = customDemands[p.name] || "";
+                            const dmndClass = dmnd ? `dmnd-${dmnd}` : '';
+                            html += `
+                                <div class="m-card" data-rarity="${rarity}">
+                                    <div class="m-card-header">
+                                        <span>${p.name}</span>
+                                        <span class="m-card-badge">${rarity}</span>
+                                    </div>
+                                    ${dmnd ? `<div class="m-dmnd ${dmndClass}">${dmnd}</div>` : ''}
+                                    <div class="m-card-grid">
+                                        <div class="m-val"><span>N</span><strong>${p.prices.normal}</strong></div>
+                                        <div class="m-val"><span>G</span><strong>${p.prices.golden}</strong></div>
+                                        <div class="m-val"><span>R</span><strong>${p.prices.rainbow}</strong></div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                }
+            });
+
+            if (html === '') html = '<div class="empty-state">No pets match filters.</div>';
+            container.innerHTML = html;
+        }
+
+        function fetchMarketData() {
+            const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
+            if (!db) { container.innerHTML = '<div class="empty-state">Database not connected.</div>'; return; }
+            container.innerHTML = '<div class="empty-state">Loading...</div>';
+            db.collection('market_listings').get().then(snap => {
+                appState.data = [];
+                snap.forEach(doc => appState.data.push({ id: doc.id, ...doc.data() }));
+                renderMarket();
+            }).catch(err => {
+                container.innerHTML = '<div class="empty-state">Error loading data.</div>';
+            });
+        }
+
+        function renderMarket() {
+            const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
+            const myId = localStorage.getItem('tapping_user_id');
+            let filtered = appState.data.filter(item => {
+                if (item.createdAt) {
+                    const created = item.createdAt.toMillis(); const now = Date.now();
+                    let limit = 24 * 3600000; if (item.userType === 'normal') limit = 12 * 3600000; if (item.userType === 'admin') limit = 7 * 86400000;
+                    if (now > (created + limit)) return false;
+                }
+                if (appState.search && !item.name.toLowerCase().includes(appState.search) && !item.discord.toLowerCase().includes(appState.search)) return false;
+                if (appState.rarity !== 'all' && item.rarity !== appState.rarity) return false;
+                if (appState.variant !== 'all' && item.variant.toLowerCase() !== appState.variant) return false;
+                if (appState.tab === 'my' && item.userId !== myId) return false;
+                return true;
+            });
+
+            if (appState.sort === 'price-asc') filtered.sort((a, b) => a.price - b.price);
+            if (appState.sort === 'price-desc') filtered.sort((a, b) => b.price - a.price);
+            if (appState.sort === 'newest') filtered.reverse();
+
+            if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">No listings found.</div>'; return; }
+
+            let html = '';
+            if (appState.platform === 'desktop') {
+                html += '<div class="d-grid">';
+                filtered.forEach(item => {
+                    const isMine = item.userId === myId;
+                    const dmnd = customDemands[item.name] || "";
+                    html += `
+                        <div class="d-card d-mkt-card rarity-${item.rarity}">
+                            <div class="d-card-header">
+                                <span>${item.name}</span>
+                                <span class="d-card-badge">${item.variant}</span>
+                            </div>
+                            ${dmnd ? `<div class="d-demand ${dmnd}">${dmnd}</div>` : ''}
+                            <div class="d-mkt-stats">
+                                <div class="d-mkt-stat price"><span>Price</span><strong>${item.price.toLocaleString()}</strong></div>
+                                <div class="d-mkt-stat"><span>Amt</span><strong>${item.amount || 1}</strong></div>
+                                <div class="d-mkt-stat"><span>Rarity</span><strong>${item.rarity ? item.rarity.substr(0,1) : '-'}</strong></div>
+                            </div>
+                            ${item.negotiable ? '<div class="d-neg">Negotiable</div>' : ''}
+                            <div class="d-mkt-footer">
+                                <div class="d-seller">${item.discord}</div>
+                                <div class="d-acts">
+                                    <button class="d-act-btn" onclick="copyText('${item.discord}')">Copy</button>
+                                    ${isMine ? `<button class="d-act-btn d-act-del" onclick="deleteListing('${item.id}')">X</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                filtered.forEach(item => {
+                    const isMine = item.userId === myId;
+                    const dmnd = customDemands[item.name] || "";
+                    const dmndClass = dmnd ? `dmnd-${dmnd}` : '';
+                    html += `
+                        <div class="m-card" data-rarity="${item.rarity}">
+                            <div class="m-card-header">
+                                <span>${item.name}</span>
+                                <span class="m-card-badge">${item.variant}</span>
+                            </div>
+                            ${dmnd ? `<div class="m-dmnd ${dmndClass}">${dmnd}</div>` : ''}
+                            <div class="m-card-grid">
+                                <div class="m-val"><span>Price</span><strong>${item.price.toLocaleString()}</strong></div>
+                                <div class="m-val"><span>Amt</span><strong>${item.amount || 1}</strong></div>
+                                <div class="m-val"><span>Rarity</span><strong>${item.rarity ? item.rarity.substr(0,1) : '-'}</strong></div>
+                            </div>
+                            ${item.negotiable ? '<div style="font-size:0.7rem; color:orange; margin-top:5px; text-align:center;">Negotiable</div>' : ''}
+                            <div class="m-seller">${item.discord}</div>
+                            <div class="m-actions">
+                                <button class="m-btn m-btn-copy" onclick="copyText('${item.discord}')">Copy</button>
+                                ${isMine ? `<button class="m-btn m-btn-del" onclick="deleteListing('${item.id}')">Delete</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            container.innerHTML = html;
+        }
+
+        // --- ACTIONS ---
+        function openKeyModal() { toggleDrawer(false); document.getElementById('keyModal').classList.add('open'); document.getElementById('keyError').innerText = ""; }
+        function openModal() {
+            const slots = checkUserStatus();
+            const userId = localStorage.getItem('tapping_user_id') || ('usr_' + Math.random().toString(36).substr(2,9));
+            localStorage.setItem('tapping_user_id', userId);
+            if (!db) { alert("Database offline"); return; }
+            db.collection('market_listings').where('userId', '==', userId).get().then(snap => {
+                if (snap.size >= slots) {
+                    const msg = document.getElementById('errorMsg');
+                    if (msg) msg.innerText = `Limit reached (${snap.size}/${slots}).`;
+                    if (appState.platform === 'mobile') alert(`Limit reached (${snap.size}/${slots})`);
+                    return;
+                }
+                document.getElementById('sellModal').classList.add('open');
+                document.getElementById('sellForm').reset();
+                const msg = document.getElementById('errorMsg'); if(msg) msg.innerText = "";
+                const vMsg = document.getElementById('verifyMsg'); if(vMsg) vMsg.innerText = "";
+            });
+        }
+        function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
+        
+        function verifyDiscord(input) {
+            const val = input.value.trim();
+            const msg = document.getElementById('verifyMsg');
+            if (!msg) return;
+            if (val.length < 3) { msg.innerText = ""; return; }
+            const isVerified = verifiedUsers.some(u => u.toLowerCase() === val.toLowerCase());
+            msg.innerText = isVerified ? "✅ Verified" : "❌ Unverified";
+            msg.style.color = isVerified ? "var(--success)" : "var(--danger)";
+            input.style.borderColor = isVerified ? "var(--success)" : (val.includes('#') ? "var(--danger)" : "#333");
+        }
+
+        async function activateKey() {
+            const uInput = document.getElementById('userIdInput').value.trim();
+            const kInput = document.getElementById('userKeyInput').value.trim();
+            const err = document.getElementById('keyError');
+            if (!uInput || !kInput) return err.innerText = "Fill both fields.";
+            if (kInput === adminKey) {
+                grantAccess("Admin Key", 365); closeModal(); checkUserStatus(); alert("Admin Access Granted"); return;
+            }
+            const match = validKeys.find(k => k.key === kInput);
+            if (match) {
+                if (match.owner.toLowerCase() === uInput.toLowerCase()) {
+                    grantAccess(match.key, match.days); closeModal(); checkUserStatus(); alert("Access Granted");
+                } else { err.innerText = `Key belongs to ${match.owner}`; }
+            } else { err.innerText = "Invalid Key"; }
+        }
+
+        async function submitListing(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('#submitBtn');
+            const err = document.getElementById('errorMsg');
+            const name = document.getElementById('pName').value.trim();
+            const price = parseInt(document.getElementById('pPrice').value);
+            const discord = document.getElementById('pDiscord').value.trim();
+            
+            if (!name || !price || !discord) { err.innerText = "Fill required fields"; return; }
+            btn.disabled = true; btn.innerText = "Posting...";
+
+            const userId = localStorage.getItem('tapping_user_id');
+            const raw = localStorage.getItem('clees_premium_access');
+            const type = raw ? (JSON.parse(raw).slots === 99 ? 'admin' : 'normal') : 'free';
+
+            const data = {
+                name: name, rarity: document.getElementById('pRarity').value, variant: document.getElementById('pVariant').value,
+                amount: parseInt(document.getElementById('pAmount').value), price: price, discord: discord,
+                negotiable: document.getElementById('pNegotiable').checked, userId: userId, userType: type,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                expiresAt: Date.now() + (type === 'admin' ? 7 : type === 'normal' ? 0.5 : 1) * 86400000
+            };
+
+            try {
+                await db.collection('market_listings').add(data);
+                closeModal(); switchTab('my', appState.platform);
+            } catch (e) { err.innerText = "Error: " + e.message; btn.disabled = false; btn.innerText = "Confirm"; }
+        }
+
+        async function deleteListing(id) {
+            if (!confirm("Delete listing?")) return;
+            try { await db.collection('market_listings').doc(id).delete(); renderMarket(); } catch (e) { alert(e.message); }
+        }
+
+        function copyText(text) { navigator.clipboard.writeText(text); }
+
+        function grantAccess(source, days) {
+            const expiry = Date.now() + (days * 24 * 60 * 60 * 1000);
+            const slots = (source === "Admin Key") ? 99 : 10;
+            localStorage.setItem('clees_premium_access', JSON.stringify({ premium: true, slots, expiry, days, source }));
+        }
+
+        function checkUserStatus() {
+            const dataStr = localStorage.getItem('clees_premium_access');
+            let slots = 1; let type = "Free"; let expiryStr = "24h";
+            if (dataStr) {
+                const data = JSON.parse(dataStr);
+                if (Date.now() < data.expiry) {
+                    slots = data.slots; type = data.source === "Admin Key" ? "Admin" : "Normal";
+                    expiryStr = `~${Math.ceil((data.expiry - Date.now()) / 86400000)} days`;
+                } else { localStorage.removeItem('clees_premium_access'); }
+            }
+            document.getElementById('dSlots').innerText = slots;
+            document.getElementById('dExpiry').innerText = expiryStr;
+            document.querySelector('.d-premium').style.display = (type === "Admin" || type === "Normal") ? 'inline' : 'none';
+            document.getElementById('mSlots').innerText = slots;
+            document.getElementById('mType').innerText = type;
+            return slots;
+        }
+
+        function scheduleCleanup() {
+            if (!db) return;
+            setInterval(() => {
+                const userId = localStorage.getItem('tapping_user_id');
+                if (!userId) return;
+                const raw = localStorage.getItem('clees_premium_access');
+                let days = 1; if (raw) { const d = JSON.parse(raw); if (d.source === "Admin Key") days = 7; else days = 0.5; }
+                const cutoff = Date.now() - (days * 86400000);
+                db.collection('market_listings').where('userId', '==', userId).where('createdAt', '<', new Date(cutoff)).get().then(snap => {
+                    if (snap.empty) return; const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); batch.commit().then(() => { if (appState.tab === 'my') renderMarket(); });
+                });
+            }, 60000);
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
