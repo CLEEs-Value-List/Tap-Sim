@@ -12,7 +12,7 @@
     <style>
         :root { 
             --bg-app: #0a0b10; --bg-card: #13141a; --bg-sidebar: #0f0f13;
-            --text-main: #ffffff; --text-muted: #8b90a0;
+            --text-main: #ffffff; --text-muted: #cfcfcf; /* FIXED: Changed from dark grey to light grey */
             --rarity-secret: #ff0055; --rarity-mythical: #d500f9; --rarity-legendary: #ffd600;
             --market-color: #00d4ff; --danger: #ff3b3b; --success: #00ff88; --premium: #ffd700; --dead: #7e22ce;
             --border-radius: 12px;
@@ -28,13 +28,16 @@
         .d-title { font-size: 1.2rem; font-weight: 800; color: var(--market-color); margin-bottom: 5px; display: block; }
         .d-badge { font-size: 0.65rem; background: rgba(0, 255, 136, 0.15); color: var(--success); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--success); font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 8px; }
         .d-discord { display: block; background: #5865F2; color: white; text-decoration: none; text-align: center; padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; }
+        
         .d-status { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
         .d-status-row { font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; justify-content: space-between; margin-bottom: 3px; }
         .d-premium { color: var(--premium); font-weight: 800; display: none; }
+        
         .d-key-btn { display: block; background: #5865F2; color: white; text-align: center; padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; cursor: pointer; border: none; width: 100%; transition: 0.2s; }
-        .d-help { font-size: 0.7rem; color: #aaa; line-height: 1.5; margin-top: 10px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .d-help { font-size: 0.7rem; color: var(--text-muted); line-height: 1.5; margin-top: 10px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        
         .d-egg-list { list-style: none; margin-top: 10px; }
-        .d-egg-item { padding: 10px; margin-bottom: 6px; background: rgba(255,255,255,0.03); border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; font-weight: 600; font-size: 0.9rem; }
+        .d-egg-item { padding: 10px; margin-bottom: 6px; background: rgba(255,255,255,0.03); border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; font-weight: 600; font-size: 0.9rem; color: var(--text-main); /* Ensure text visible */ }
         .d-egg-item:hover { background: rgba(255,255,255,0.08); transform: translateX(3px); }
         .d-egg-item.active { background: var(--market-color); color: #000; border-color: white; }
 
@@ -52,7 +55,7 @@
         
         .d-filter-bar { padding: 10px 25px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); display: none; gap: 15px; flex-wrap: wrap; flex-shrink: 0; }
         .d-filter-bar.visible { display: flex; }
-        .d-filter-btn { font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #888; cursor: pointer; font-weight: 700; text-transform: uppercase; }
+        .d-filter-btn { font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #aaa; cursor: pointer; font-weight: 700; text-transform: uppercase; }
         .d-filter-btn.active { background: #333; color: white; border-color: white; }
         .d-filter-btn[data-filter="Secret"].active { background: var(--rarity-secret); border-color: var(--rarity-secret); }
         .d-filter-btn[data-filter="Mythical"].active { background: var(--rarity-mythical); border-color: var(--rarity-mythical); }
@@ -63,7 +66,7 @@
         .d-content { flex: 1; overflow-y: auto; padding: 20px 25px; background: var(--bg-app); position: relative; }
         .d-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
 
-        /* DESKTOP CARDS - 3 COLUMN PRICES */
+        /* DESKTOP CARDS */
         .d-card { background: var(--bg-card); border-radius: 12px; padding: 15px; border: 1px solid rgba(255,255,255,0.08); transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 10px; height: 200px; }
         .d-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.3); background: #1a1b22; }
         .d-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; border-radius: 12px 0 0 12px; background: #333; }
@@ -71,31 +74,27 @@
         .d-card.rarity-Mythical::before { background: var(--rarity-mythical); }
         .d-card.rarity-Legendary::before { background: var(--rarity-legendary); }
         
-        .d-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.05rem; margin-bottom: 5px; }
+        .d-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.05rem; margin-bottom: 5px; color: #fff; }
         .d-card-badge { font-size: 0.65rem; background: #222; padding: 2px 6px; border-radius: 4px; color: #aaa; text-transform: uppercase; }
         
-        /* NEW 3 COLUMN GRID FOR PRICES */
         .d-price-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: auto; }
         .d-price-box { background: #111; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
         .d-price-label { font-size: 0.55rem; color: #888; text-transform: uppercase; font-weight: 700; }
         .d-price-val { font-family: monospace; font-size: 0.9rem; color: #fff; font-weight: 800; }
-        /* Visual Flair for the Price Boxes */
-        .d-price-box:nth-child(1) { border-top: 2px solid #888; } /* Normal */
-        .d-price-box:nth-child(2) { border-top: 2px solid var(--premium); } /* Golden */
-        .d-price-box:nth-child(3) { border-top: 2px solid var(--market-color); } /* Rainbow */
-
+        
         .d-demand { text-align: center; padding: 4px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; border: 1px solid transparent; margin-top: 5px; }
         .d-demand.High { color: var(--success); background: rgba(0,255,136,0.1); border-color: var(--success); }
         .d-demand.Medium { color: #ffaa00; background: rgba(255,170,0,0.1); border-color: #ffaa00; }
         .d-demand.Low { color: var(--danger); background: rgba(255,59,59,0.1); border-color: var(--danger); }
 
-        /* Desktop Market */
-        .d-mkt-card { height: auto; min-height: 210px; }
-        .d-mkt-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+        /* Market Cards (Modified to fit visual style) */
+        .d-mkt-card { height: auto; min-height: 230px; }
+        .d-mkt-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 5px; }
         .d-mkt-stat { background: #111; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid #222; display: flex; flex-direction: column; justify-content: center; }
-        .d-mkt-stat span { font-size: 0.6rem; color: #666; text-transform: uppercase; font-weight: 700; }
+        .d-mkt-stat span { font-size: 0.6rem; color: #888; text-transform: uppercase; font-weight: 700; }
         .d-mkt-stat strong { font-size: 0.85rem; color: #eee; font-family: monospace; }
         .d-mkt-stat.price strong { color: var(--market-color); font-size: 1rem; }
+        
         .d-mkt-footer { display: grid; grid-template-columns: 1fr auto; gap: 5px; align-items: center; margin-top: auto; }
         .d-seller { font-size: 0.75rem; font-family: monospace; color: var(--market-color); background: #0f0f13; padding: 5px; border-radius: 4px; border: 1px solid #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .d-acts { display: flex; gap: 5px; }
@@ -104,8 +103,10 @@
         .d-act-del { background: rgba(255,59,59,0.1); color: var(--danger); border: 1px solid rgba(255,59,59,0.2); }
         .d-act-del:hover { background: var(--danger); color: white; }
         .d-neg { text-align: center; font-size: 0.7rem; color: orange; font-style: italic; grid-column: 1 / -1; margin-top: 2px; }
+        
+        .d-timer { font-size: 0.65rem; color: #888; text-align: center; margin-top: 2px; grid-column: 1 / -1; }
 
-        /* Mobile UI */
+        /* MOBILE UI */
         .mobile-view { display: none; flex-direction: column; height: 100vh; width: 100vw; background: var(--bg-app); color: var(--text-main); }
         @media (max-width: 900px) { .mobile-view { display: flex; } }
         
@@ -119,7 +120,7 @@
 
         .m-filter-bar { padding: 10px; background: #111; border-bottom: 1px solid rgba(255,255,255,0.05); display: none; flex-shrink: 0; }
         .m-filter-row { display: flex; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
-        .m-filter-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #888; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .m-filter-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #aaa; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
         .m-filter-btn.active { background: #333; color: white; border-color: white; }
         .m-search-input { width: 100%; padding: 10px; border-radius: 6px; background: #0f0f13; border: 1px solid #333; color: white; }
 
@@ -132,7 +133,7 @@
         .m-card[data-rarity="Mythical"]::before { background: var(--rarity-mythical); }
         .m-card[data-rarity="Legendary"]::before { background: var(--rarity-legendary); }
         
-        .m-card-header { display: flex; justify-content: space-between; font-weight: 800; font-size: 1rem; margin-bottom: 5px; }
+        .m-card-header { display: flex; justify-content: space-between; font-weight: 800; font-size: 1rem; margin-bottom: 5px; color: #fff; }
         .m-card-badge { font-size: 0.6rem; background: #222; padding: 2px 6px; border-radius: 4px; color: #ccc; text-transform: uppercase; }
         .m-card-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 6px; }
         .m-val { text-align: center; font-size: 0.75rem; }
@@ -149,6 +150,7 @@
         .m-btn-copy { background: rgba(0,212,255,0.15); color: var(--market-color); border: 1px solid rgba(0,212,255,0.3); }
         .m-btn-del { background: rgba(255,59,59,0.15); color: var(--danger); border: 1px solid rgba(255,59,59,0.3); }
         .m-seller { font-size: 0.7rem; font-family: monospace; color: var(--market-color); opacity: 0.8; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+        .m-timer { font-size: 0.65rem; color: #888; text-align: center; margin-top: 3px; }
 
         .m-actions-bar { position: fixed; bottom: 10px; right: 10px; display: flex; gap: 8px; z-index: 50; }
         .m-fab { width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 1.2rem; font-weight: 800; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
@@ -162,9 +164,9 @@
         .m-drawer-close { background: transparent; border: none; color: white; font-size: 1.5rem; align-self: flex-end; margin-bottom: 10px; }
         .m-drawer-header { font-weight: 800; font-size: 1.2rem; color: var(--market-color); margin-bottom: 20px; }
         .m-drawer-section { margin-bottom: 20px; }
-        .m-drawer-title { font-size: 0.8rem; color: #888; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; }
-        .m-drawer-info { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.8rem; }
-        .m-drawer-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .m-drawer-title { font-size: 0.8rem; color: #aaa; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; }
+        .m-drawer-info { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.8rem; color: var(--text-main); }
+        .m-drawer-row { display: flex; justify-content: space-between; margin-bottom: 4px; color: #fff; }
         .m-drawer-btn { display: block; width: 100%; padding: 10px; background: #1a1d23; border: 1px solid #333; color: white; margin-bottom: 5px; border-radius: 6px; text-align: left; font-weight: 600; cursor: pointer; }
         .m-drawer-btn.active { background: var(--market-color); color: #000; border-color: var(--market-color); }
         .m-drawer-btn.discord { background: #5865F2; border-color: #5865F2; text-align: center; }
@@ -195,6 +197,7 @@
         <aside class="d-sidebar">
             <div class="d-sb-header">
                 <span class="d-title">CLEEs Value List</span>
+                <span class="d-badge">✅ FREE TRUST</span>
                 <a href="https://discord.gg/Xq6qNSFw" target="_blank" class="d-discord">Join Discord</a>
             </div>
             <div class="d-status" id="dStatusBox">
@@ -202,14 +205,13 @@
                 <div class="d-status-row"><span>Expiry</span> <span id="dExpiry">24h</span></div>
             </div>
             <button class="d-key-btn" onclick="openKeyModal()">Verify / Access Key</button>
-            <!-- UPDATED TEXT HERE -->
             <div class="d-help">
-                • 100% FREE: Just to verify you are a real user.<br>
-                • Standard Users: 1 slot (24h).<br>
-                • Keys: Prevent fake offers & limit spam.<br>
-                • Get a Key: Join Discord -> Request from Admin.
+                • <b>FREE:</b> 1 Listing / 3h Duration.<br>
+                • <b>NORMAL KEY:</b> 10 Listings / 12h + Locked Name.<br>
+                • <b>ADMIN KEY:</b> 99 Listings / 48h.<br>
+                • Keys prevent fake offers.
             </div>
-            <div style="margin-top:15px; font-size:0.75rem; color:#555; font-weight:700; text-transform:uppercase; margin-bottom:5px;">Categories</div>
+            <div style="margin-top:15px; font-size:0.75rem; color:#aaa; font-weight:700; text-transform:uppercase; margin-bottom:5px;">Categories</div>
             <ul class="d-egg-list" id="dEggList"></ul>
         </aside>
         
@@ -233,12 +235,12 @@
             
             <div class="d-filter-bar" id="dFilterBar">
                 <div class="d-controls">
-                    <span style="color:#888; font-size:0.8rem; font-weight:700;">RARITY:</span>
+                    <span style="color:#aaa; font-size:0.8rem; font-weight:700;">RARITY:</span>
                     <button class="d-filter-btn active" data-filter="all" onclick="setRarity('all', 'desktop')">All</button>
                     <button class="d-filter-btn" data-filter="Secret" onclick="setRarity('Secret', 'desktop')">Secret</button>
                     <button class="d-filter-btn" data-filter="Mythical" onclick="setRarity('Mythical', 'desktop')">Mythical</button>
                     <button class="d-filter-btn" data-filter="Legendary" onclick="setRarity('Legendary', 'desktop')">Legendary</button>
-                    <span style="color:#888; font-size:0.8rem; font-weight:700; margin-left:10px;">VAR:</span>
+                    <span style="color:#aaa; font-size:0.8rem; font-weight:700; margin-left:10px;">VAR:</span>
                     <button class="d-filter-btn active" data-variant="All" onclick="setVariant('All', 'desktop')">All</button>
                     <button class="d-filter-btn" data-variant="Golden" onclick="setVariant('Golden', 'desktop')">Golden</button>
                     <button class="d-filter-btn" data-variant="Rainbow" onclick="setVariant('Rainbow', 'desktop')">Rainbow</button>
@@ -266,12 +268,12 @@
             <input type="text" class="m-search-input" id="mSearch" placeholder="Search..." onkeyup="handleSearch('mobile')">
             <div style="height:5px"></div>
             <div class="m-filter-row">
-                <span style="color:#888; font-size:0.7rem; align-self:center;">Rarity:</span>
+                <span style="color:#aaa; font-size:0.7rem; align-self:center;">Rarity:</span>
                 <button class="m-filter-btn active" data-filter="all" onclick="setRarity('all', 'mobile')">All</button>
                 <button class="m-filter-btn" data-filter="Secret" onclick="setRarity('Secret', 'mobile')">Sec</button>
                 <button class="m-filter-btn" data-filter="Mythical" onclick="setRarity('Mythical', 'mobile')">Myth</button>
                 <button class="m-filter-btn" data-filter="Legendary" onclick="setRarity('Legendary', 'mobile')">Leg</button>
-                <span style="color:#888; font-size:0.7rem; align-self:center; margin-left:5px;">Sort:</span>
+                <span style="color:#aaa; font-size:0.7rem; align-self:center; margin-left:5px;">Sort:</span>
                 <button class="m-filter-btn" onclick="setSortMobile('newest')">New</button>
                 <button class="m-filter-btn" onclick="setSortMobile('price-asc')">Low</button>
                 <button class="m-filter-btn" onclick="setSortMobile('price-desc')">High</button>
@@ -285,7 +287,6 @@
             <button class="m-fab list" onclick="openModal()">+</button>
         </div>
 
-        <!-- Drawer -->
         <div class="m-overlay" id="mOverlay" onclick="toggleDrawer(false)"></div>
         <div class="m-drawer" id="mDrawer">
             <button class="m-drawer-close" onclick="toggleDrawer(false)">×</button>
@@ -295,6 +296,7 @@
                 <div class="m-drawer-info">
                     <div class="m-drawer-row"><span>Slots:</span> <span id="mSlots">1</span></div>
                     <div class="m-drawer-row"><span>Type:</span> <span id="mType">Free</span></div>
+                    <div class="m-drawer-row"><span>Duration:</span> <span id="mDuration">3h</span></div>
                 </div>
                 <button class="m-drawer-btn key" onclick="openKeyModal()">Verify / Key</button>
             </div>
@@ -312,7 +314,7 @@
     <div class="modal-overlay" id="sellModal">
         <div class="modal">
             <h2>Post Listing</h2>
-            <div class="trust-box">This is FREE. Verification prevents spam.</div>
+            <div class="trust-box" id="modalTrustText">This is FREE. Verification prevents spam.</div>
             <form id="sellForm" onsubmit="submitListing(event)">
                 <div class="form-group"><label>Pet Name</label><input type="text" id="pName" list="petList" required></div>
                 <div class="form-group" style="display:flex; gap:10px;">
@@ -323,7 +325,10 @@
                     <div style="flex:1;"><label>Amount</label><input type="number" id="pAmount" value="1" required></div>
                     <div style="flex:1;"><label>Price</label><input type="number" id="pPrice" required></div>
                 </div>
-                <div class="form-group"><label>Discord</label><input type="text" id="pDiscord" required oninput="verifyDiscord(this)"><div id="verifyMsg" class="verify-msg"></div></div>
+                <div class="form-group"><label>Discord Name</label><input type="text" id="pDiscord" placeholder="User#1234" required></div>
+                <!-- Status message for Discord name -->
+                <div id="discordStatus" style="font-size:0.75rem; margin-bottom:10px; color:#888;"></div>
+
                 <div class="checkbox-group"><input type="checkbox" id="pNegotiable"><label>Allow Negotiation</label></div>
                 <div class="error-msg" id="errorMsg"></div>
                 <div class="modal-actions">
@@ -339,6 +344,7 @@
             <h2>Verify Access</h2>
             <div class="form-group"><label>User ID</label><input type="text" id="userIdInput" placeholder="User#1234"></div>
             <div class="form-group"><label>Key</label><input type="text" id="userKeyInput" placeholder="Paste Key"></div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:10px;">Admin Key: <b>CLEE</b></div>
             <button class="btn btn-primary" style="width:100%" onclick="activateKey()">Activate</button>
             <div class="error-msg" id="keyError"></div>
             <div class="modal-actions" style="margin-top:10px;"><button class="btn btn-secondary" onclick="closeModal()">Close</button></div>
@@ -350,7 +356,14 @@
     <script>
         // --- CONFIGURATION ---
         const adminKey = "CLEE"; 
-        const validKeys = []; 
+        
+        // KEYS DB: Define keys and who owns them (Normal Keys)
+        // Structure: { key: "KEYCODE", owner: "User#1234" }
+        const userKeys = [
+            // Add your Normal Keys here like this:
+            // { key: "PETXPASS", owner: "your_discord_name#1234" }
+            // Leave empty if you don't have any to test yet.
+        ];
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -407,9 +420,7 @@
             "TOP 10": "High", "TOP 100": "High", "TOP 250": "Medium"
         };
 
-        const verifiedUsers = []; 
-
-        // --- STATE ---
+        // --- STATE & USER SESSION ---
         let appState = {
             tab: 'values',
             egg: 'New Year Egg',
@@ -418,17 +429,62 @@
             variant: 'all',
             sort: 'newest',
             platform: 'desktop',
-            data: []
+            data: [],
+            userInfo: { type: 'free', key: null, owner: null } // type: 'free', 'normal', 'admin'
         };
 
         // --- INITIALIZATION ---
         function init() {
+            loadUserSession();
             populateDatalist();
             renderEggs();
-            checkUserStatus();
             switchTab('values', window.innerWidth > 900 ? 'desktop' : 'mobile');
-            if (db) scheduleCleanup();
+            if (db) {
+                scheduleCleanup(); // Auto delete expired
+                fetchMarketData(); // Load data on startup
+            }
             window.addEventListener('resize', handleResize);
+        }
+
+        function loadUserSession() {
+            const raw = localStorage.getItem('clees_user_session');
+            if (raw) {
+                const session = JSON.parse(raw);
+                // Check if expired
+                if (session.expiry && Date.now() > session.expiry) {
+                    localStorage.removeItem('clees_user_session');
+                    appState.userInfo = { type: 'free', key: null, owner: null };
+                } else {
+                    appState.userInfo = session;
+                }
+            } else {
+                appState.userInfo = { type: 'free', key: null, owner: null };
+            }
+            updateUserUI();
+        }
+
+        function updateUserUI() {
+            const info = appState.userInfo;
+            let slots = 1;
+            let duration = "3h";
+            let label = "Free User";
+
+            if (info.type === 'normal') {
+                slots = 10; duration = "12h"; label = "Normal User";
+            } else if (info.type === 'admin') {
+                slots = 99; duration = "48h"; label = "Admin";
+            }
+
+            // Desktop
+            document.getElementById('dSlots').innerText = slots;
+            document.getElementById('dExpiry').innerText = info.type === 'free' ? "No Key" : formatTime(info.expiry - Date.now());
+            const prem = document.querySelector('.d-premium');
+            if (prem) prem.style.display = (info.type !== 'free') ? 'inline' : 'none';
+
+            // Mobile
+            document.getElementById('mSlots').innerText = slots;
+            document.getElementById('mType').innerText = label;
+            document.getElementById('mDuration').innerText = duration;
         }
 
         function handleResize() {
@@ -585,7 +641,6 @@
                         html += `<div class="d-grid">`;
                         pets.forEach(p => {
                             const dmnd = customDemands[p.name] || "";
-                            // Ensure values are strings
                             const nVal = p.prices.normal.toString();
                             const gVal = p.prices.golden.toString();
                             const rVal = p.prices.rainbow.toString();
@@ -597,21 +652,10 @@
                                         <span class="d-card-badge">Values</span>
                                     </div>
                                     ${dmnd ? `<div class="d-demand ${dmnd}">${dmnd}</div>` : ''}
-                                    
-                                    <!-- 3 COLUMN PRICES LAYOUT -->
                                     <div class="d-price-row">
-                                        <div class="d-price-box">
-                                            <span class="d-price-label">Normal</span>
-                                            <span class="d-price-val">${nVal}</span>
-                                        </div>
-                                        <div class="d-price-box">
-                                            <span class="d-price-label">Golden</span>
-                                            <span class="d-price-val">${gVal}</span>
-                                        </div>
-                                        <div class="d-price-box">
-                                            <span class="d-price-label">Rainbow</span>
-                                            <span class="d-price-val">${rVal}</span>
-                                        </div>
+                                        <div class="d-price-box"><span class="d-price-label">Normal</span><span class="d-price-val">${nVal}</span></div>
+                                        <div class="d-price-box"><span class="d-price-label">Golden</span><span class="d-price-val">${gVal}</span></div>
+                                        <div class="d-price-box"><span class="d-price-label">Rainbow</span><span class="d-price-val">${rVal}</span></div>
                                     </div>
                                 </div>
                             `;
@@ -648,6 +692,7 @@
             const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
             if (!db) { container.innerHTML = '<div class="empty-state">Database not connected.</div>'; return; }
             container.innerHTML = '<div class="empty-state">Loading...</div>';
+            
             db.collection('market_listings').get().then(snap => {
                 appState.data = [];
                 snap.forEach(doc => appState.data.push({ id: doc.id, ...doc.data() }));
@@ -657,15 +702,20 @@
             });
         }
 
+        function formatTime(ms) {
+            if (ms < 0) return "0m";
+            const h = Math.floor(ms / 3600000);
+            const m = Math.floor((ms % 3600000) / 60000);
+            return `${h}h ${m}m`;
+        }
+
         function renderMarket() {
             const container = appState.platform === 'desktop' ? document.getElementById('dContentArea') : document.getElementById('mContentArea');
             const myId = localStorage.getItem('tapping_user_id');
+            
+            // We filter based on what's in the database, but we visually indicate expired items (optional)
+            // The cleanup function removes them, so we usually don't see them here.
             let filtered = appState.data.filter(item => {
-                if (item.createdAt) {
-                    const created = item.createdAt.toMillis(); const now = Date.now();
-                    let limit = 24 * 3600000; if (item.userType === 'normal') limit = 12 * 3600000; if (item.userType === 'admin') limit = 7 * 86400000;
-                    if (now > (created + limit)) return false;
-                }
                 if (appState.search && !item.name.toLowerCase().includes(appState.search) && !item.discord.toLowerCase().includes(appState.search)) return false;
                 if (appState.rarity !== 'all' && item.rarity !== appState.rarity) return false;
                 if (appState.variant !== 'all' && item.variant.toLowerCase() !== appState.variant) return false;
@@ -685,6 +735,8 @@
                 filtered.forEach(item => {
                     const isMine = item.userId === myId;
                     const dmnd = customDemands[item.name] || "";
+                    const expires = formatTime(item.expiresAt - Date.now());
+                    
                     html += `
                         <div class="d-card d-mkt-card rarity-${item.rarity}">
                             <div class="d-card-header">
@@ -698,6 +750,7 @@
                                 <div class="d-mkt-stat"><span>Rarity</span><strong>${item.rarity ? item.rarity.substr(0,1) : '-'}</strong></div>
                             </div>
                             ${item.negotiable ? '<div class="d-neg">Negotiable</div>' : ''}
+                            <div class="d-timer">Expires: ${expires}</div>
                             <div class="d-mkt-footer">
                                 <div class="d-seller">${item.discord}</div>
                                 <div class="d-acts">
@@ -714,6 +767,7 @@
                     const isMine = item.userId === myId;
                     const dmnd = customDemands[item.name] || "";
                     const dmndClass = dmnd ? `dmnd-${dmnd}` : '';
+                    const expires = formatTime(item.expiresAt - Date.now());
                     html += `
                         <div class="m-card" data-rarity="${item.rarity}">
                             <div class="m-card-header">
@@ -727,6 +781,7 @@
                                 <div class="m-val"><span>Rarity</span><strong>${item.rarity ? item.rarity.substr(0,1) : '-'}</strong></div>
                             </div>
                             ${item.negotiable ? '<div style="font-size:0.7rem; color:orange; margin-top:5px; text-align:center;">Negotiable</div>' : ''}
+                            <div class="m-timer">Expires: ${expires}</div>
                             <div class="m-seller">${item.discord}</div>
                             <div class="m-actions">
                                 <button class="m-btn m-btn-copy" onclick="copyText('${item.discord}')">Copy</button>
@@ -740,81 +795,173 @@
         }
 
         // --- ACTIONS ---
-        function openKeyModal() { toggleDrawer(false); document.getElementById('keyModal').classList.add('open'); document.getElementById('keyError').innerText = ""; }
-        function openModal() {
-            const slots = checkUserStatus();
-            const userId = localStorage.getItem('tapping_user_id') || ('usr_' + Math.random().toString(36).substr(2,9));
-            localStorage.setItem('tapping_user_id', userId);
-            if (!db) { alert("Database offline"); return; }
-            db.collection('market_listings').where('userId', '==', userId).get().then(snap => {
-                if (snap.size >= slots) {
-                    const msg = document.getElementById('errorMsg');
-                    if (msg) msg.innerText = `Limit reached (${snap.size}/${slots}).`;
-                    if (appState.platform === 'mobile') alert(`Limit reached (${snap.size}/${slots})`);
-                    return;
-                }
-                document.getElementById('sellModal').classList.add('open');
-                document.getElementById('sellForm').reset();
-                const msg = document.getElementById('errorMsg'); if(msg) msg.innerText = "";
-                const vMsg = document.getElementById('verifyMsg'); if(vMsg) vMsg.innerText = "";
-            });
-        }
-        function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
-        
-        function verifyDiscord(input) {
-            const val = input.value.trim();
-            const msg = document.getElementById('verifyMsg');
-            if (!msg) return;
-            if (val.length < 3) { msg.innerText = ""; return; }
-            const isVerified = verifiedUsers.some(u => u.toLowerCase() === val.toLowerCase());
-            msg.innerText = isVerified ? "✅ Verified" : "❌ Unverified";
-            msg.style.color = isVerified ? "var(--success)" : "var(--danger)";
-            input.style.borderColor = isVerified ? "var(--success)" : (val.includes('#') ? "var(--danger)" : "#333");
+
+        function openKeyModal() { 
+            toggleDrawer(false); 
+            document.getElementById('keyModal').classList.add('open'); 
+            document.getElementById('keyError').innerText = ""; 
         }
 
-        async function activateKey() {
-            const uInput = document.getElementById('userIdInput').value.trim();
-            const kInput = document.getElementById('userKeyInput').value.trim();
-            const err = document.getElementById('keyError');
-            if (!uInput || !kInput) return err.innerText = "Fill both fields.";
-            if (kInput === adminKey) {
-                grantAccess("Admin Key", 365); closeModal(); checkUserStatus(); alert("Admin Access Granted"); return;
+        function openModal() {
+            const userId = localStorage.getItem('tapping_user_id') || ('usr_' + Math.random().toString(36).substr(2,9));
+            localStorage.setItem('tapping_user_id', userId);
+
+            // 1. Check Current Slots & Duration Logic
+            const limit = getUserLimits(); // { slots, durationMs, type, lockedName }
+
+            if (!db) { alert("Database offline"); return; }
+
+            db.collection('market_listings').where('userId', '==', userId).get().then(snap => {
+                // Count only active (not expired) listings
+                let activeCount = 0;
+                const now = Date.now();
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.expiresAt > now) activeCount++;
+                });
+
+                if (activeCount >= limit.slots) {
+                    const msg = document.getElementById('errorMsg');
+                    if (msg) msg.innerText = `Limit reached (${activeCount}/${limit.slots}). Wait for expiry.`;
+                    if (appState.platform === 'mobile') alert(`Limit reached (${activeCount}/${limit.slots})`);
+                    return;
+                }
+
+                // Open Modal
+                document.getElementById('sellModal').classList.add('open');
+                document.getElementById('sellForm').reset();
+                document.getElementById('errorMsg').innerText = "";
+                
+                // Discord Input Logic
+                const dInput = document.getElementById('pDiscord');
+                const dStatus = document.getElementById('discordStatus');
+                const trustText = document.getElementById('modalTrustText');
+
+                if (limit.type === 'free') {
+                    trustText.innerHTML = "🔒 <b>Standard Mode:</b> Random names allowed, 3h duration.";
+                    dInput.placeholder = "Enter Any Name";
+                    dInput.value = "";
+                    dInput.removeAttribute('readonly');
+                    dStatus.innerHTML = "";
+                } else if (limit.type === 'normal') {
+                    trustText.innerHTML = "🔒 <b>Key Mode:</b> Name locked to key owner.";
+                    dInput.value = limit.owner;
+                    dInput.setAttribute('readonly', 'readonly');
+                    dStatus.innerHTML = `Verified: ${limit.owner}`;
+                    dStatus.style.color = "var(--success)";
+                } else if (limit.type === 'admin') {
+                    trustText.innerHTML = "🔒 <b>Admin Mode:</b> Full access.";
+                    dInput.removeAttribute('readonly');
+                    dInput.value = "";
+                    dInput.placeholder = "Admin Override";
+                    dStatus.innerHTML = "Admin privileges active";
+                    dStatus.style.color = "var(--premium)";
+                }
+            });
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+        }
+
+        function getUserLimits() {
+            // Returns { slots, durationMs, type, owner }
+            if (appState.userInfo.type === 'admin') {
+                return { slots: 99, durationMs: 48 * 3600000, type: 'admin', owner: null };
+            } else if (appState.userInfo.type === 'normal') {
+                return { slots: 10, durationMs: 12 * 3600000, type: 'normal', owner: appState.userInfo.owner };
+            } else {
+                return { slots: 1, durationMs: 3 * 3600000, type: 'free', owner: null };
             }
-            const match = validKeys.find(k => k.key === kInput);
-            if (match) {
-                if (match.owner.toLowerCase() === uInput.toLowerCase()) {
-                    grantAccess(match.key, match.days); closeModal(); checkUserStatus(); alert("Access Granted");
-                } else { err.innerText = `Key belongs to ${match.owner}`; }
-            } else { err.innerText = "Invalid Key"; }
         }
 
         async function submitListing(e) {
             e.preventDefault();
             const btn = e.target.querySelector('#submitBtn');
             const err = document.getElementById('errorMsg');
+            
             const name = document.getElementById('pName').value.trim();
             const price = parseInt(document.getElementById('pPrice').value);
             const discord = document.getElementById('pDiscord').value.trim();
             
             if (!name || !price || !discord) { err.innerText = "Fill required fields"; return; }
-            btn.disabled = true; btn.innerText = "Posting...";
 
             const userId = localStorage.getItem('tapping_user_id');
-            const raw = localStorage.getItem('clees_premium_access');
-            const type = raw ? (JSON.parse(raw).slots === 99 ? 'admin' : 'normal') : 'free';
+            const limits = getUserLimits();
+
+            // Calculate Expiry
+            const expiresAt = Date.now() + limits.durationMs;
 
             const data = {
-                name: name, rarity: document.getElementById('pRarity').value, variant: document.getElementById('pVariant').value,
-                amount: parseInt(document.getElementById('pAmount').value), price: price, discord: discord,
-                negotiable: document.getElementById('pNegotiable').checked, userId: userId, userType: type,
+                name: name,
+                rarity: document.getElementById('pRarity').value,
+                variant: document.getElementById('pVariant').value,
+                amount: parseInt(document.getElementById('pAmount').value),
+                price: price,
+                discord: discord,
+                negotiable: document.getElementById('pNegotiable').checked,
+                userId: userId,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                expiresAt: Date.now() + (type === 'admin' ? 7 : type === 'normal' ? 0.5 : 1) * 86400000
+                expiresAt: expiresAt,
+                // Store user type for sorting/filtering
+                userType: limits.type 
             };
+
+            btn.disabled = true; btn.innerText = "Posting...";
 
             try {
                 await db.collection('market_listings').add(data);
-                closeModal(); switchTab('my', appState.platform);
-            } catch (e) { err.innerText = "Error: " + e.message; btn.disabled = false; btn.innerText = "Confirm"; }
+                closeModal();
+                switchTab('my', appState.platform);
+            } catch (e) {
+                err.innerText = "Error: " + e.message;
+                btn.disabled = false; btn.innerText = "Confirm";
+            }
+        }
+
+        async function activateKey() {
+            const uInput = document.getElementById('userIdInput').value.trim();
+            const kInput = document.getElementById('userKeyInput').value.trim();
+            const err = document.getElementById('keyError');
+            
+            if (!uInput || !kInput) return err.innerText = "Fill both fields.";
+
+            // 1. Admin Key
+            if (kInput === adminKey) {
+                saveSession('admin', kInput, null);
+                closeModal(); updateUserUI();
+                alert("Admin Access Granted (48h listings)");
+                return;
+            }
+
+            // 2. Normal Keys (Check against userKeys array)
+            const match = userKeys.find(k => k.key === kInput);
+            if (match) {
+                // Check if username matches (case insensitive)
+                if (uInput.toLowerCase() === match.owner.toLowerCase()) {
+                    saveSession('normal', kInput, match.owner);
+                    closeModal(); updateUserUI();
+                    alert(`Key Validated! Welcome ${match.owner}`);
+                } else {
+                    err.innerText = `Key belongs to ${match.owner}`;
+                }
+                return;
+            }
+
+            err.innerText = "Invalid Key";
+        }
+
+        function saveSession(type, key, owner) {
+            // 365 days for Admin, 7 days for Normal Key (just to keep session, listing logic handles expiry)
+            const expiryDays = type === 'admin' ? 365 : 7;
+            const session = {
+                type: type, // free, normal, admin
+                key: key,
+                owner: owner,
+                expiry: Date.now() + (expiryDays * 86400000)
+            };
+            localStorage.setItem('clees_user_session', JSON.stringify(session));
+            appState.userInfo = session;
         }
 
         async function deleteListing(id) {
@@ -824,45 +971,29 @@
 
         function copyText(text) { navigator.clipboard.writeText(text); }
 
-        function grantAccess(source, days) {
-            const expiry = Date.now() + (days * 24 * 60 * 60 * 1000);
-            const slots = (source === "Admin Key") ? 99 : 10;
-            localStorage.setItem('clees_premium_access', JSON.stringify({ premium: true, slots, expiry, days, source }));
-        }
-
-        function checkUserStatus() {
-            const dataStr = localStorage.getItem('clees_premium_access');
-            let slots = 1; let type = "Free"; let expiryStr = "24h";
-            if (dataStr) {
-                const data = JSON.parse(dataStr);
-                if (Date.now() < data.expiry) {
-                    slots = data.slots; type = data.source === "Admin Key" ? "Admin" : "Normal";
-                    expiryStr = `~${Math.ceil((data.expiry - Date.now()) / 86400000)} days`;
-                } else { localStorage.removeItem('clees_premium_access'); }
-            }
-            document.getElementById('dSlots').innerText = slots;
-            document.getElementById('dExpiry').innerText = expiryStr;
-            document.querySelector('.d-premium').style.display = (type === "Admin" || type === "Normal") ? 'inline' : 'none';
-            document.getElementById('mSlots').innerText = slots;
-            document.getElementById('mType').innerText = type;
-            return slots;
-        }
-
+        // --- SCHEDULED CLEANUP (Requirement 4: Autodelete) ---
         function scheduleCleanup() {
             if (!db) return;
+            // Run every 1 minute
             setInterval(() => {
-                const userId = localStorage.getItem('tapping_user_id');
-                if (!userId) return;
-                const raw = localStorage.getItem('clees_premium_access');
-                let days = 1; if (raw) { const d = JSON.parse(raw); if (d.source === "Admin Key") days = 7; else days = 0.5; }
-                const cutoff = Date.now() - (days * 86400000);
-                db.collection('market_listings').where('userId', '==', userId).where('createdAt', '<', new Date(cutoff)).get().then(snap => {
-                    if (snap.empty) return; const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); batch.commit().then(() => { if (appState.tab === 'my') renderMarket(); });
+                const cutoff = Date.now();
+                db.collection('market_listings').where('expiresAt', '<', cutoff).get().then(snap => {
+                    if (snap.empty) return;
+                    const batch = db.batch();
+                    snap.forEach(doc => batch.delete(doc.ref));
+                    batch.commit().then(() => {
+                        // If we are in 'My List' or 'Market', refresh view
+                        if (appState.tab === 'my' || appState.tab === 'market') {
+                            fetchMarketData();
+                        }
+                    });
                 });
             }, 60000);
         }
 
+        // Start
         window.addEventListener('DOMContentLoaded', init);
+
     </script>
 </body>
 </html>
